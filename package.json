@@ -9,6 +9,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:services": "docker-compose up -d",
+    "dev:db": "pnpm --filter @boardgametime/db exec prisma db push && pnpm --filter @boardgametime/db seed",
+    "dev:all": "pnpm dev:services && pnpm dev:db && pnpm dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean"
