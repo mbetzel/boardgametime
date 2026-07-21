@@ -1,0 +1,24 @@
+{
+  "name": "@boardgametime/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@boardgametime/types": "workspace:*",
+    "@boardgametime/game-core": "workspace:*",
+    "@boardgametime/game-kingdoms": "workspace:*",
+    "@boardgametime/db": "workspace:*",
+    "fastify": "^4.26.0",
+    "socket.io": "^4.7.4",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.0"
+  }
+}
