@@ -1,48 +1,62 @@
-# PRD-001: BoardGameTime Platform Core Requirements
+# PRD-001: BoardGameTime Platform Specifications
 
-- **Status**: Drafted / Pending Review
-- **Author**: Antigravity & User
-- **Date**: 2026-07-21
+- **Document ID**: PRD-001
+- **Status**: Approved / Active
 - **Target Release**: MVP v1.0
+- **Primary Game**: *Kingdoms* (Fantasy Flight Games 2002 Edition by Reiner Knizia)
 
 ---
 
-## 1. Executive Summary
+## 1. Product Vision & Architecture Strategy
 
-**BoardGameTime** is a web-based multiplayer board game platform designed to support both real-time (synchronous WebSockets) and turn-based asynchronous play across multiple games. The platform's initial release features **Kingdoms** (designed by Reiner Knizia, Fantasy Flight Games 2002 rules) as its flagship title, with an architecture designed to easily onboard additional board games over time.
-
----
-
-## 2. Product Objectives & Scope
-
-### 2.1 Core Capabilities
-- **Multi-Game Support**: Standardized API, DB, and client interfaces allowing distinct game packages (\packages/games/<game-id>\) to plug into a shared platform infrastructure.
-- **Authentication & Authorization**: Seamless signup/login via Username/Password or Google OAuth 2.0.
-- **Lobby & Match Creation**: Create public or private games for 2 to 4 players in either real-time or asynchronous mode.
-- **Asynchronous Play**: Untimed turns for MVP with in-app notification badges informing players when it is their turn to act.
-- **Persistence & Replayability**: Complete event-sourcing log (\match_events\) storing every move made in a match alongside latest state snapshots.
-
-### 2.2 Out of Scope for MVP
-- Spectator mode.
-- Native mobile apps (responsive web design only).
-- Email or push notifications (in-app notifications only).
-- Configurable turn expiration timers (turns are untimed in MVP).
+BoardGameTime is a web-based, multi-game platform supporting both **real-time WebSockets** and **async turn-based** play. The system is designed to host multiple board games in a monorepo architecture (`packages/games/*`), starting with *Kingdoms*.
 
 ---
 
-## 3. Detailed Requirements
+## 2. User Experience & Wireframe Requirements
 
-### 3.1 Authentication & User Profiles
-- **REQ-AUTH-1**: User Registration via Credentials (email, username, password with bcrypt hashing).
-- **REQ-AUTH-2**: Third-Party Authentication via Google OAuth 2.0.
-- **REQ-AUTH-3**: JWT Token Issuance by NextAuth v5, readable and validated by both Next.js client and Fastify API / Socket.IO server.
-- **REQ-AUTH-4**: User Profile displaying display name, avatar, match statistics (wins, losses, games played).
+The web application frontend adheres to the Pencil Wireframe specification (Pages 1–5):
 
-### 3.2 Game Lobbies & Matchmaking
-- **REQ-LOBBY-1**: Lobby Creation — Host selects:
-  - Game Type (default: **Kingdoms**)
-  - Player Count (2, 3, or 4 players)
-  - Play Mode (**Real-Time** or **Asynchronous**)
-  - Visibility (**Public** or **Private** via 6-character invite code)
-- **REQ-LOBBY-2**: Lobby Browser — List active public lobbies with real-time updates via Socket.IO (player join/leave, ready state).
-- **REQ-LOBBY-3**: Player Ready State — All joined players must toggle " Ready\
+### 2.1 Home Page (`/`)
+- **Header**: App title ("Board Game Time"). Displays a "Sign In" button when unauthenticated, and user avatar/username + "Sign Out" button when authenticated.
+- **Games Section**: Display gallery of available titles (*Kingdoms*) alongside coming-soon cards for future games (e.g., *Catan*, *Carcassonne* placeholders).
+- **Active Game Rooms Section**: Displays list of open public game rooms with instant "Join" actions.
+
+### 2.2 Sign In (`/auth/login`)
+- Dedicated URL route: `/auth/login`.
+- Form with Username and Password fields.
+- "Sign In" primary action button connected to JWT authentication.
+- "Sign In with Google" button:
+  - Local Dev Environment: Triggers a mock Google sign-in flow for easy testing without external credentials.
+  - Production Environment: Triggers Google OAuth 2.0 redirect flow.
+- Link to Create Account (`/auth/register`).
+
+### 2.3 Create Account (`/auth/register`)
+- Dedicated URL route: `/auth/register`.
+- Form fields: Email Address, Username, Password.
+- Client & Server Validation:
+  - **Username**: Must be unique across platform.
+  - **Email**: Valid email address formatting.
+  - **Password Strength**: Minimum 8 characters, requiring a combination of uppercase, lowercase, numbers, and special characters.
+
+### 2.4 Create Game Room (`/lobbies/new`)
+- Dedicated screen for room creation:
+  - **Select Game**: Dropdown selecting target game (default: *Kingdoms*).
+  - **Player Settings**: Number of players selector (variable per game, e.g. 2–4 for *Kingdoms*).
+  - **Game Settings**: Play mode (`REALTIME` vs `ASYNC`), Visibility (`PUBLIC` vs `PRIVATE` with 6-char invite code).
+  - **Action**: "Create Lobby" button creating room and redirecting host to waiting room.
+
+### 2.5 Game Play (`/matches/[id]`)
+- **Layout**: Two-column responsive interface matching Wireframe Page 5:
+  - **Left Section (Main Canvas)**: Interactive 5x6 game board grid, hover cell target indicators, castle rank tray (Ranks 1–4), draw pile counter, secret tile hand view, and turn pass button.
+  - **Right Sidebar (Stacked Cards & History)**:
+    - **Player Info Cards**: Stacked cards (Players 1–4) showing player color badge, gold score, remaining castles, and active turn glow.
+    - **Turn History Log**: Scrollable timeline recording every action performed in the match (`MatchEvent` feed).
+
+---
+
+## 3. Non-Functional Requirements & Security
+
+- **Server Authority**: 100% server-authoritative rules enforcement. Clients submit actions; server validates and returns state updates.
+- **Event Sourcing**: Every move is saved to `MatchEvent` with `(matchId, sequenceNum)` for full move replays.
+- **Single Cloud GCP**: Hosted in `us-central1` via Terraform (Cloud Run, Cloud SQL PostgreSQL 16, Cloud Memorystore Redis).

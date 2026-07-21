@@ -7,9 +7,13 @@ import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { login, register } from '../../lib/api';
 
-export const AuthForm: React.FC = () => {
+export interface AuthFormProps {
+  initialRegister?: boolean;
+}
+
+export const AuthForm: React.FC<AuthFormProps> = ({ initialRegister = false }) => {
   const router = useRouter();
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(initialRegister);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -69,9 +73,9 @@ export const AuthForm: React.FC = () => {
         )}
 
         <Input
-          label="Email Address"
-          type="email"
-          placeholder="player@boardgametime.com"
+          label={isRegister ? 'Email Address' : 'Email Address or Username'}
+          type={isRegister ? 'email' : 'text'}
+          placeholder={isRegister ? 'player@boardgametime.com' : 'alice@boardgametime.com or alice'}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

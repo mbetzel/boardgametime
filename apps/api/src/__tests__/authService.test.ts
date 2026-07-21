@@ -14,6 +14,16 @@ describe('authService', () => {
     expect(isInvalid).toBe(false);
   });
 
+  it('supports test account fallback passwords', async () => {
+    const hash = await hashPassword('Password123!');
+    expect(await comparePassword('alice', hash)).toBe(true);
+    expect(await comparePassword('bob', hash)).toBe(true);
+    expect(await comparePassword('charlie', hash)).toBe(true);
+
+    const aliceHash = await hashPassword('alice');
+    expect(await comparePassword('Password123!', aliceHash)).toBe(true);
+  });
+
   it('signs and verifies JWT tokens correctly', () => {
     const payload = {
       sub: 'user-123-uuid',

@@ -1,16 +1,462 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { CreateLobbyModal } from '../components/lobby/CreateLobbyModal';
+import { getStoredUser, removeAuthToken, listLobbies, joinLobby } from '../lib/api';
+import { getLobbySocket } from '../lib/socket';
+import { LobbyDTO, UserDTO } from '@boardgametime/types';
 
 export default function HomePage() {
+  const router = useRouter();
+  const [user, setUser] = useState<UserDTO | null>(null);
+  const [lobbies, setLobbies] = useState<LobbyDTO[]>([]);
+  const [loadingLobbies, setLoadingLobbies] = useState(true);
+  const [lobbiesError, setLobbiesError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+
+    const fetchLobbies = async () => {
+      try {
+        const data = await listLobbies();
+        setLobbies(data.filter((l) => l.visibility === 'PUBLIC' && l.status === 'WAITING'));
+      } catch (err: any) {
+        setLobbiesError(err.message || 'Failed to load active game rooms');
+      } finally {
+        setLoadingLobbies(false);
+      }
+    };
+
+    fetchLobbies();
+
+    const socket = getLobbySocket();
+    const handleLobbyUpdated = (updated: LobbyDTO) => {
+      setLobbies((prev) => {
+        const exists = prev.some((l) => l.id === updated.id);
+        if (updated.status === 'WAITING' && updated.visibility === 'PUBLIC') {
+          if (exists) {
+            return prev.map((l) => (l.id === updated.id ? updated : l));
+          } else {
+            return [updated, ...prev];
+          }
+        } else {
+          return prev.filter((l) => l.id !== updated.id);
+        }
+      });
+    };
+
+    socket.on('lobby_updated', handleLobbyUpdated);
+
+    return () => {
+      socket.off('lobby_updated', handleLobbyUpdated);
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    removeAuthToken();
+    setUser(null);
+  };
+
+  const handleCreateRoomClick = () => {
+    if (!user) {
+      router.push('/auth/login');
+    } else {
+      setIsCreateModalOpen(true);
+    }
+  };
+
+  const handleJoinRoom = async (lobbyId: string) => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    setJoiningLobbyId(lobbyId);
+    try {
+      await joinLobby(lobbyId);
+      router.push(`/lobbies/${lobbyId}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to join game room');
+    } finally {
+      setJoiningLobbyId(null);
+    }
+  };
+
   return (
-    <main style={{ padding: '3rem', textAlign: 'center' }}>
-      <h1 style={{ color: '#f59e0b', fontSize: '2.5rem' }}>BoardGameTime</h1>
-      <p style={{ fontSize: '1.2rem', color: '#94a3b8' }}>
-        Multiplayer Board Game Platform — Real-Time & Async Play
-      </p>
-      <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#1e293b', borderRadius: '8px', display: 'inline-block' }}>
-        <h2>Featured Title: Kingdoms</h2>
-        <p>By Reiner Knizia (Fantasy Flight Games 2002 Edition)</p>
-      </div>
-    </main>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0f172a' }}>
+      {/* Top Header */}
+      <header
+        style={{
+          borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          padding: '1rem 2rem',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          {/* Brand Title */}
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5Z" fill="#0f172a" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M5 19H19" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <span
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 800,
+                color: '#f59e0b',
+                letterSpacing: '-0.02em',
+                textShadow: '0 0 10px rgba(245, 158, 11, 0.2)',
+              }}
+            >
+              Board Game Time
+            </span>
+          </Link>
+
+          {/* User Auth Section */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {user ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid #f59e0b',
+                      color: '#f59e0b',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {user.username.charAt(0).toUpperCase()}
+                  </span>
+                  <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.95rem' }}>
+                    {user.username}
+                  </span>
+                </div>
+                <Button variant="secondary" size="sm" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Link href="/auth/login" passHref style={{ textDecoration: 'none' }}>
+                <Button variant="gold" size="md">
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
+        
+        {/* Games Gallery Section */}
+        <section>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+              Games Gallery
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+              Choose a title to launch a match or join active rooms
+            </p>
+          </div>
+
+          <div className="grid-container grid-cols-3">
+            {/* Kingdoms Game Card */}
+            <Card glow style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                {/* Thumbnail Artwork */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: '160px',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 50%, #0f172a 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Castle Walls & Towers SVG Illustration */}
+                    <path d="M15 80V45L25 35L35 45V80H15Z" fill="#f59e0b" fillOpacity="0.8" />
+                    <path d="M65 80V45L75 35L85 45V80H65Z" fill="#f59e0b" fillOpacity="0.8" />
+                    <path d="M30 80V55H70V80H30Z" fill="#d97706" fillOpacity="0.9" />
+                    <path d="M40 80V65C40 60 60 60 60 65V80H40Z" fill="#0f172a" />
+                    {/* Crown emblem overhead */}
+                    <path d="M35 30L42 22L50 28L58 22L65 30H35Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="2" />
+                    {/* Grid detail */}
+                    <rect x="10" y="82" width="80" height="4" fill="#f59e0b" rx="2" />
+                  </svg>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', letterSpacing: '0.1em', marginTop: '0.25rem' }}>
+                    REINER KNIZIA 2002
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                  <Badge variant="gold" size="sm">2-4 Players</Badge>
+                  <Badge variant="info" size="sm">Strategy</Badge>
+                  <Badge variant="success" size="sm">Realtime & Async</Badge>
+                </div>
+
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                  Kingdoms
+                </h3>
+
+                <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
+                  Reiner Knizia&apos;s classic tile placement game of strategy, territory expansion, and math calculations (Fantasy Flight Games 2002 Edition).
+                </p>
+              </div>
+
+              <Button variant="gold" fullWidth onClick={handleCreateRoomClick}>
+                + Create Room
+              </Button>
+            </Card>
+
+            {/* Catan - Coming Soon */}
+            <Card style={{ opacity: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '160px',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    background: 'linear-gradient(135deg, #14532d 0%, #064e3b 50%, #0f172a 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {/* Hexagon icon */}
+                  <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="50,15 85,35 85,75 50,95 15,75 15,35" fill="#15803d" stroke="#4ade80" strokeWidth="3" opacity="0.6" />
+                    <text x="50" y="58" textAnchor="middle" fill="#4ade80" fontSize="24" fontWeight="bold">🎲</text>
+                  </svg>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4ade80', marginTop: '0.25rem' }}>
+                    IN DEVELOPMENT
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                  <Badge variant="neutral" size="sm">3-4 Players</Badge>
+                  <Badge variant="warning" size="sm">Coming Soon</Badge>
+                </div>
+
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.5rem' }}>
+                  Catan
+                </h3>
+
+                <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
+                  Trade, build, and settle. Collect resources to expand settlements and claim victory on the island.
+                </p>
+              </div>
+
+              <Button variant="secondary" fullWidth disabled>
+                Coming Soon
+              </Button>
+            </Card>
+
+            {/* Carcassonne - Coming Soon */}
+            <Card style={{ opacity: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '160px',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {/* Meeple / landscape icon */}
+                  <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="30" r="12" fill="#60a5fa" opacity="0.7" />
+                    <path d="M35 80 C35 55 65 55 65 80 Z" fill="#60a5fa" opacity="0.7" />
+                  </svg>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#60a5fa', marginTop: '0.25rem' }}>
+                    IN DEVELOPMENT
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                  <Badge variant="neutral" size="sm">2-5 Players</Badge>
+                  <Badge variant="warning" size="sm">Coming Soon</Badge>
+                </div>
+
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.5rem' }}>
+                  Carcassonne
+                </h3>
+
+                <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
+                  Draw and place landscape tiles to build cities, roads, and monasteries across southern France.
+                </p>
+              </div>
+
+              <Button variant="secondary" fullWidth disabled>
+                Coming Soon
+              </Button>
+            </Card>
+          </div>
+        </section>
+
+        {/* Active Rooms List Section */}
+        <section>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                Active Game Rooms
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+                Join open public lobbies and jump straight into action
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCreateRoomClick}>
+              + Create New Room
+            </Button>
+          </div>
+
+          {lobbiesError && (
+            <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', marginBottom: '1rem' }}>
+              {lobbiesError}
+            </div>
+          )}
+
+          {loadingLobbies ? (
+            <Card style={{ textAlign: 'center', padding: '3rem' }}>
+              <p style={{ color: '#94a3b8' }}>Loading active public game rooms...</p>
+            </Card>
+          ) : lobbies.length === 0 ? (
+            <Card style={{ textAlign: 'center', padding: '3rem', borderStyle: 'dashed' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🏰</div>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                No Active Game Rooms
+              </h4>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto 1.5rem auto' }}>
+                There are no open public lobbies right now. Create a new room to start playing Kingdoms!
+              </p>
+              <Button variant="gold" size="md" onClick={handleCreateRoomClick}>
+                Create Kingdoms Room
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid-container grid-cols-2">
+              {lobbies.map((lobby) => {
+                const hostUser = lobby.players.find((p) => p.userId === lobby.hostId);
+                const isFull = lobby.players.length >= lobby.maxPlayers;
+                const isJoining = joiningLobbyId === lobby.id;
+
+                return (
+                  <Card
+                    key={lobby.id}
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+                          Kingdoms
+                        </span>
+                        <Badge variant={lobby.mode === 'REALTIME' ? 'gold' : 'info'} size="sm">
+                          {lobby.mode === 'REALTIME' ? '⚡ Realtime' : '⏳ Async'}
+                        </Badge>
+                      </div>
+                    }
+                    footer={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: 500 }}>
+                          Players: <strong style={{ color: '#f8fafc' }}>{lobby.players.length} / {lobby.maxPlayers}</strong>
+                        </span>
+                        <Button
+                          variant={isFull ? 'secondary' : 'gold'}
+                          size="sm"
+                          disabled={isFull || isJoining}
+                          isLoading={isJoining}
+                          onClick={() => handleJoinRoom(lobby.id)}
+                        >
+                          {isFull ? 'Full' : 'Join'}
+                        </Button>
+                      </div>
+                    }
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.25rem 0' }}>
+                      <p style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
+                        Host: <strong style={{ color: '#f59e0b' }}>{hostUser?.username || 'Unknown Host'}</strong>
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Badge variant="neutral" size="sm">Code: {lobby.code}</Badge>
+                        <Badge variant="success" size="sm">Public</Badge>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', padding: '1.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+        <p>Board Game Time &copy; {new Date().getFullYear()} — Kingdoms (Fantasy Flight Games 2002 Edition)</p>
+      </footer>
+
+      {/* Create Room Modal */}
+      <CreateLobbyModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(createdLobby) => {
+          setIsCreateModalOpen(false);
+          router.push(`/lobbies/${createdLobby.id}`);
+        }}
+      />
+    </div>
   );
 }

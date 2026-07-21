@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 export * from '@prisma/client';
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/boardgametime?schema=public';
+  process.env.DATABASE_URL = 'postgresql://postgres:postgrespassword@localhost:5432/boardgametime_dev?schema=public';
 }
 
 let prismaInstance: PrismaClient | null = null;

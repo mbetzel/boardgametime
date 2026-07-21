@@ -12,7 +12,7 @@ import {
   MatchEventDTO,
 } from '@boardgametime/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -60,7 +60,11 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const path = endpoint.startsWith('/api/') || endpoint === '/api'
+    ? endpoint
+    : `/api${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
@@ -77,7 +81,7 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
 // Auth API
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const res = await fetchApi<AuthResponse>('/auth/register', {
+  const res = await fetchApi<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -87,7 +91,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 }
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-  const res = await fetchApi<AuthResponse>('/auth/login', {
+  const res = await fetchApi<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -97,55 +101,55 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
 }
 
 export async function getMe(): Promise<UserDTO> {
-  const user = await fetchApi<UserDTO>('/auth/me');
+  const user = await fetchApi<UserDTO>('/api/auth/me');
   if (user) setStoredUser(user);
   return user;
 }
 
 // Lobbies API
 export async function listLobbies(): Promise<LobbyDTO[]> {
-  return fetchApi<LobbyDTO[]>('/lobbies');
+  return fetchApi<LobbyDTO[]>('/api/lobbies');
 }
 
 export async function createLobby(data: CreateLobbyRequest): Promise<LobbyDTO> {
-  return fetchApi<LobbyDTO>('/lobbies', {
+  return fetchApi<LobbyDTO>('/api/lobbies', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function joinLobby(id: string, data?: JoinLobbyRequest): Promise<LobbyDTO> {
-  return fetchApi<LobbyDTO>(`/lobbies/${id}/join`, {
+  return fetchApi<LobbyDTO>(`/api/lobbies/${id}/join`, {
     method: 'POST',
     body: JSON.stringify(data || {}),
   });
 }
 
 export async function toggleReady(id: string, data: ToggleReadyRequest): Promise<LobbyDTO> {
-  return fetchApi<LobbyDTO>(`/lobbies/${id}/ready`, {
+  return fetchApi<LobbyDTO>(`/api/lobbies/${id}/ready`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function startGame(id: string): Promise<{ matchId: string; match: MatchDTO }> {
-  return fetchApi<{ matchId: string; match: MatchDTO }>(`/lobbies/${id}/start`, {
+  return fetchApi<{ matchId: string; match: MatchDTO }>(`/api/lobbies/${id}/start`, {
     method: 'POST',
   });
 }
 
 // Matches API
 export async function getMatch(id: string): Promise<MatchDTO> {
-  return fetchApi<MatchDTO>(`/matches/${id}`);
+  return fetchApi<MatchDTO>(`/api/matches/${id}`);
 }
 
 export async function submitAction(id: string, data: SubmitActionRequest): Promise<MatchDTO> {
-  return fetchApi<MatchDTO>(`/matches/${id}/action`, {
+  return fetchApi<MatchDTO>(`/api/matches/${id}/action`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function getMatchEvents(id: string): Promise<MatchEventDTO[]> {
-  return fetchApi<MatchEventDTO[]>(`/matches/${id}/events`);
+  return fetchApi<MatchEventDTO[]>(`/api/matches/${id}/events`);
 }

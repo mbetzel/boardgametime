@@ -2,12 +2,15 @@ import Fastify, { FastifyInstance } from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyJwt from '@fastify/jwt';
 import dotenv from 'dotenv';
+import path from 'path';
 import { authRoutes } from './routes/authRoutes';
 import { lobbyRoutes } from './routes/lobbyRoutes';
 import { matchRoutes } from './routes/matchRoutes';
 import { initSocketServer } from './sockets/socketServer';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || 'boardgametime-secret-key';
 

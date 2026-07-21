@@ -69,7 +69,7 @@ describe('API Integration Workflows', () => {
       updatedAt: new Date(),
     };
 
-    vi.spyOn(prisma.user, 'findUnique').mockResolvedValueOnce(mockUser as any);
+    vi.spyOn(prisma.user, 'findFirst').mockResolvedValueOnce(mockUser as any);
 
     const res = await app.inject({
       method: 'POST',

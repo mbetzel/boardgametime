@@ -56,13 +56,19 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post('/login', async (request: FastifyRequest<{ Body: LoginRequest }>, reply: FastifyReply) => {
     const { email, password } = request.body || {};
+    const identifier = email || (request.body as any)?.username;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return reply.status(400).send({ message: 'Email and password are required.' });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ],
+      },
     });
 
     if (!user || !user.passwordHash) {
