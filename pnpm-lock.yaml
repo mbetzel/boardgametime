@@ -75,6 +75,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@boardgametime/game-kingdoms':
+        specifier: workspace:*
+        version: link:../../packages/games/kingdoms
       '@boardgametime/types':
         specifier: workspace:*
         version: link:../../packages/types
