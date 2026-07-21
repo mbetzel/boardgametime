@@ -8,26 +8,56 @@ generator client {
 }
 
 model User {
-  id            String       @id @default(uuid())
-  username      String       @unique
-  email         String       @unique
+  id            String        @id @default(uuid())
+  username      String        @unique
+  email         String        @unique
   passwordHash  String?
   avatarUrl     String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  hostedLobbies Lobby[]       @relation("LobbyHost")
+  lobbyPlayers  LobbyPlayer[]
   matchPlayers  MatchPlayer[]
   matchEvents   MatchEvent[]
 }
 
+model Lobby {
+  id          String        @id @default(uuid())
+  code        String        @unique
+  gameId      String        @default("kingdoms")
+  hostId      String
+  maxPlayers  Int           @default(4)
+  minPlayers  Int           @default(2)
+  mode        String        @default("REALTIME") // REALTIME | ASYNC
+  visibility  String        @default("PUBLIC")   // PUBLIC | PRIVATE
+  status      String        @default("WAITING")  // WAITING | IN_GAME | CANCELLED
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  host        User          @relation("LobbyHost", fields: [hostId], references: [id], onDelete: Cascade)
+  players     LobbyPlayer[]
+}
+
+model LobbyPlayer {
+  id        String   @id @default(uuid())
+  lobbyId   String
+  userId    String
+  isReady   Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  lobby     Lobby    @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lobbyId, userId])
+}
+
 model Match {
-  id                  String       @id @default(uuid())
-  gameId              String       @default("kingdoms")
-  mode                String       // REALTIME | ASYNC
-  status              String       @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED | ABANDONED
+  id                  String        @id @default(uuid())
+  gameId              String        @default("kingdoms")
+  mode                String        @default("REALTIME") // REALTIME | ASYNC
+  status              String        @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED | ABANDONED
   currentTurnPlayerId String?
   stateSnapshot       Json
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
   players             MatchPlayer[]
   events              MatchEvent[]
 }
