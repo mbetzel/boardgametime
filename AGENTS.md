@@ -8,16 +8,23 @@ wsl -d Ubuntu -e <command>
 
 ---
 
-## 2. File Creation & Modification Policy
+## 2. Model Selection & Subagent Strategy
+- **Planning & Architectural Reasoning**: High-level planning, requirements drafting, ADR design, and complex problem decomposition are performed using **Frontier / Pro models** (`pro`).
+- **Code Execution & Implementation**: Code generation, file edits, test suite execution, and build tasks are delegated to **Faster / Cheaper models** (`flash` / `flash_lite`).
+
+---
+
+## 3. File Creation & Modification Policy
 To prevent Windows PowerShell string mangling or quote truncation during file operations:
 - **Direct File Operations**: Always write and edit individual files directly on the workspace filesystem using direct file writing tools (`write_to_file` / `replace_file_content`).
 - **No Inline Command Code Piping**: Do NOT attempt to pass multi-line source code, JSON, or complex heredoc strings through inline shell arguments.
 
 ---
 
-## 3. Git Commit Standards (Conventional Commits)
-All git commits MUST strictly adhere to the **Conventional Commits** specification:
-`<type>(<scope>): <short description>`
+## 4. Git Commit & Review Policy
+- **User Review Required**: All changes MUST be reviewed and approved by the user before committing or pushing.
+- **Conventional Commits**: All git commits MUST strictly adhere to the **Conventional Commits** specification:
+  `<type>(<scope>): <short description>`
 
 ### Commit Types
 - `feat`: A new feature
@@ -38,14 +45,9 @@ All git commits MUST strictly adhere to the **Conventional Commits** specificati
 - `docs`: PRDs and ADRs (`docs/*`)
 - `repo`: Root monorepo configuration (`package.json`, `pnpm-workspace.yaml`, `turbo.json`)
 
-### Examples
-- `feat(kingdoms): implement turn action state machine and board scoring calculator`
-- `docs(adr): add ADR-001 through ADR-006 architecture decision records`
-- `chore(repo): scaffold initial Turborepo and pnpm workspace structure`
-
 ---
 
-## 4. Build, Verification & Testing Workflow
+## 5. Build, Verification & Testing Workflow
 - **Monorepo Directory**: All workspace execution commands MUST be run from `/home/mike/github/boardgametime`.
 - **Package Management & Orchestration**: Use `pnpm` and `turbo`:
   ```bash
