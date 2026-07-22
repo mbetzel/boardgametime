@@ -178,8 +178,24 @@ describe('Kingdoms Game Engine State Machine', () => {
     expect(epoch2State.epoch).toBe(2);
     expect(events.some((e: any) => e.type === 'EPOCH_SCORED')).toBe(true);
     expect(events.some((e: any) => e.type === 'EPOCH_STARTED')).toBe(true);
+    expect(epoch2State.lastScoringResult).toBeDefined();
+    expect(epoch2State.lastScoringResult?.epoch).toBe(1);
 
     // Board cleared for Epoch 2
     expect(epoch2State.board[0][0].type).toBe('EMPTY');
+
+    // Subsequent action in Epoch 2 retains Epoch 1 lastScoringResult without resetting or corrupting it
+    const activeInEpoch2 = epoch2State.activePlayerId;
+    const { newState: epoch2NextState } = engine.applyAction(epoch2State, {
+      type: 'PLACE_CASTLE',
+      playerId: activeInEpoch2,
+      rank: 1,
+      row: 0,
+      col: 0,
+    });
+    expect(epoch2NextState.epoch).toBe(2);
+    expect(epoch2NextState.lastScoringResult).toBeDefined();
+    expect(epoch2NextState.lastScoringResult?.epoch).toBe(1);
   });
 });
+
