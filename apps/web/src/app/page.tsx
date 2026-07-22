@@ -7,9 +7,9 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { CreateLobbyModal } from '../components/lobby/CreateLobbyModal';
-import { getStoredUser, removeAuthToken, listLobbies, joinLobby } from '../lib/api';
+import { getStoredUser, removeAuthToken, listLobbies, joinLobby, getUserMatches } from '../lib/api';
 import { getLobbySocket } from '../lib/socket';
-import { LobbyDTO, UserDTO } from '@boardgametime/types';
+import { LobbyDTO, UserDTO, MatchDTO } from '@boardgametime/types';
 
 export default function HomePage() {
   const router = useRouter();
@@ -17,11 +17,29 @@ export default function HomePage() {
   const [lobbies, setLobbies] = useState<LobbyDTO[]>([]);
   const [loadingLobbies, setLoadingLobbies] = useState(true);
   const [lobbiesError, setLobbiesError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<MatchDTO[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(false);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
 
   useEffect(() => {
-    setUser(getStoredUser());
+    const currentUser = getStoredUser();
+    setUser(currentUser);
+
+    if (currentUser) {
+      setLoadingMatches(true);
+      getUserMatches()
+        .then((data) => {
+          setMatches(data);
+        })
+        .catch((err: any) => {
+          setMatchesError(err.message || 'Failed to load ongoing matches');
+        })
+        .finally(() => {
+          setLoadingMatches(false);
+        });
+    }
 
     const fetchLobbies = async () => {
       try {
@@ -62,6 +80,7 @@ export default function HomePage() {
   const handleSignOut = () => {
     removeAuthToken();
     setUser(null);
+    setMatches([]);
   };
 
   const handleCreateRoomClick = () => {
@@ -434,6 +453,114 @@ export default function HomePage() {
                         <Badge variant="neutral" size="sm">Code: {lobby.code}</Badge>
                         <Badge variant="success" size="sm">Public</Badge>
                       </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* My Games (Current Games) Section */}
+        <section>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+              My Games (Current Games)
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+              Your ongoing matches in progress
+            </p>
+          </div>
+
+          {!user ? (
+            <Card style={{ textAlign: 'center', padding: '2.5rem', borderStyle: 'dashed' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔐</div>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                Sign In to View Current Games
+              </h4>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto 1.25rem auto' }}>
+                Please sign in to see your active games and rejoin matches in progress.
+              </p>
+              <Link href="/auth/login" passHref style={{ textDecoration: 'none' }}>
+                <Button variant="gold" size="md">
+                  Sign In
+                </Button>
+              </Link>
+            </Card>
+          ) : loadingMatches ? (
+            <Card style={{ textAlign: 'center', padding: '3rem' }}>
+              <p style={{ color: '#94a3b8' }}>Loading your active matches...</p>
+            </Card>
+          ) : matchesError ? (
+            <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
+              {matchesError}
+            </div>
+          ) : matches.length === 0 ? (
+            <Card style={{ textAlign: 'center', padding: '3rem', borderStyle: 'dashed' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚔️</div>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                No Ongoing Matches
+              </h4>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
+                You have no active matches in progress right now. Join an active room above or create a new room!
+              </p>
+            </Card>
+          ) : (
+            <div className="grid-container grid-cols-2">
+              {matches.map((match) => {
+                const isMyTurn = match.currentTurnPlayerId === user.id;
+                const activePlayer = match.players.find((p) => p.userId === match.currentTurnPlayerId);
+                const activePlayerName = activePlayer?.username || 'Opponent';
+                const gameName = match.gameId === 'kingdoms' ? 'Kingdoms' : (match.gameId.charAt(0).toUpperCase() + match.gameId.slice(1));
+                const epoch = (match.stateSnapshot as any)?.epoch || 1;
+
+                return (
+                  <Card
+                    key={match.id}
+                    glow={isMyTurn}
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+                          {gameName}
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <Badge variant={match.mode === 'REALTIME' ? 'gold' : 'info'} size="sm">
+                            {match.mode === 'REALTIME' ? '⚡ Realtime' : '⏳ Async'}
+                          </Badge>
+                          <Badge variant="neutral" size="sm">
+                            Epoch {epoch} / 3
+                          </Badge>
+                        </div>
+                      </div>
+                    }
+                    footer={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {isMyTurn ? (
+                            <Badge variant="success" size="md">
+                              🎯 Your Turn
+                            </Badge>
+                          ) : (
+                            <Badge variant="neutral" size="md">
+                              ⏳ Waiting for {activePlayerName}
+                            </Badge>
+                          )}
+                        </div>
+                        <Link href={`/matches/${match.id}`} style={{ textDecoration: 'none' }}>
+                          <Button variant={isMyTurn ? 'gold' : 'secondary'} size="sm">
+                            Rejoin Match
+                          </Button>
+                        </Link>
+                      </div>
+                    }
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.25rem 0' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+                        Players:{' '}
+                        <span style={{ color: '#cbd5e1', fontWeight: 600 }}>
+                          {match.players.map((p) => p.username).join(', ')}
+                        </span>
+                      </p>
                     </div>
                   </Card>
                 );

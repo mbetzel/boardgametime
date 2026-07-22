@@ -21,6 +21,8 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
 - **Header**: App title ("Board Game Time"). Displays a "Sign In" button when unauthenticated, and user avatar/username + "Sign Out" button when authenticated.
 - **Games Section**: Display gallery of available titles (*Kingdoms*) alongside coming-soon cards for future games (e.g., *Catan*, *Carcassonne* placeholders).
 - **Active Game Rooms Section**: Displays list of open public game rooms with instant "Join" actions.
+- **My Games (Current Games) Section**: Displays a list of active matches in progress that the currently logged-in user is participating in (with match ID, game title, current epoch/turn status, and instant "Rejoin Match" action). Visible when authenticated.
+
 
 ### 2.2 Sign In (`/auth/login`)
 - Dedicated URL route: `/auth/login`.

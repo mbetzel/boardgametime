@@ -146,6 +146,8 @@ export async function startGame(id: string): Promise<{ matchId: string; match: M
 export const startLobby = startGame;
 
 // Matches API
+export const getUserMatches = async (): Promise<MatchDTO[]> => fetchApi<MatchDTO[]>('/api/matches');
+
 export async function getMatch(id: string): Promise<MatchDTO> {
   return fetchApi<MatchDTO>(`/api/matches/${id}`);
 }

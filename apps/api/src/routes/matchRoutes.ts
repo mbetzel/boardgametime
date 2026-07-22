@@ -38,6 +38,37 @@ function mapMatchToDTO(match: any): MatchDTO {
 }
 
 export async function matchRoutes(fastify: FastifyInstance) {
+  // Get active matches for current user
+  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+    let auth;
+    try {
+      auth = getAuthUser(request);
+    } catch {
+      return reply.status(401).send({ message: 'Unauthorized' });
+    }
+
+    const matches = await prisma.match.findMany({
+      where: {
+        status: 'IN_PROGRESS',
+        players: {
+          some: {
+            userId: auth.sub,
+          },
+        },
+      },
+      include: {
+        players: {
+          include: { user: true },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return reply.send(matches.map(mapMatchToDTO));
+  });
+
   // Get match state
   fastify.get('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {

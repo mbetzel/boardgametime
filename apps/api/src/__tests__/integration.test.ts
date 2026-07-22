@@ -308,4 +308,43 @@ describe('API Integration Workflows', () => {
     expect(body.id).toBe(matchId || 'match-123-abc');
     expect(body.status).toBe('IN_PROGRESS');
   });
+
+  it('6. User Active Matches - GET /api/matches', async () => {
+    const mockMatch = {
+      id: matchId || 'match-123-abc',
+      gameId: 'kingdoms',
+      mode: 'REALTIME',
+      status: 'IN_PROGRESS',
+      currentTurnPlayerId: userId || 'usr-alice-123',
+      stateSnapshot: { epoch: 1 },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      players: [
+        {
+          id: 'mp-1',
+          matchId: matchId || 'match-123-abc',
+          userId: userId || 'usr-alice-123',
+          seatIndex: 0,
+          user: { id: userId || 'usr-alice-123', username: 'integration_alice', avatarUrl: null },
+        },
+      ],
+    };
+
+    vi.spyOn(prisma.match, 'findMany').mockResolvedValueOnce([mockMatch] as any);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/matches',
+      headers: {
+        authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.length).toBe(1);
+    expect(body[0].id).toBe(matchId || 'match-123-abc');
+    expect(body[0].players[0].username).toBe('integration_alice');
+  });
 });
