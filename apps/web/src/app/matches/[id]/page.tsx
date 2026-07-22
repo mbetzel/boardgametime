@@ -361,6 +361,7 @@ export default function MatchPage() {
               selectedAction={selectedAction}
               nextDrawTile={nextDrawTile}
               secretTile={myPlayerState?.secretTile as Tile | null ?? null}
+              activePlayerColor={gameState.players[gameState.activePlayerId]?.color || myPlayerState?.color}
             />
 
             {!gameState.isComplete && (

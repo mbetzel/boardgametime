@@ -13,6 +13,7 @@ export interface BoardCellComponentProps {
   hoverActionText?: string;
   selectedAction?: SelectedActionType;
   selectedTilePreview?: Tile | null;
+  activePlayerColor?: string;
 }
 
 export interface TileStyle {
@@ -113,8 +114,10 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
   hoverActionText,
   selectedAction,
   selectedTilePreview,
+  activePlayerColor,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
+  const playerColor = activePlayerColor || '#f59e0b';
 
   const handleClick = () => {
     if (isValidTarget && isMyTurn) {
@@ -135,7 +138,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
                 justifyContent: 'center',
                 width: '100%',
                 height: '100%',
-                opacity: 0.8,
+                opacity: 0.85,
               }}
             >
               <div
@@ -143,12 +146,12 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
                   width: '42px',
                   height: '42px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.3)',
+                  backgroundColor: `${playerColor}33`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 0 14px rgba(245, 158, 11, 0.6)',
-                  border: '2px dashed #f59e0b',
+                  boxShadow: `0 0 14px ${playerColor}99`,
+                  border: `2px dashed ${playerColor}`,
                   color: '#ffffff',
                   fontWeight: 900,
                   fontSize: '1rem',
@@ -156,7 +159,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
               >
                 🏰{selectedAction.rank}
               </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: playerColor, marginTop: '2px' }}>
                 Rank {selectedAction.rank}
               </span>
             </div>
@@ -209,7 +212,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
             style={{
               fontSize: '0.7rem',
               fontWeight: 800,
-              color: '#f59e0b',
+              color: playerColor,
               textAlign: 'center',
               padding: '0.2rem',
               textTransform: 'uppercase',
@@ -225,7 +228,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
 
     if (cell.type === 'CASTLE') {
       const owner = players[cell.playerId];
-      const playerColor = owner?.color || '#f59e0b';
+      const castleOwnerColor = owner?.color || '#f59e0b';
       return (
         <div
           style={{
@@ -242,11 +245,11 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
               width: '42px',
               height: '42px',
               borderRadius: '8px',
-              backgroundColor: playerColor,
+              backgroundColor: castleOwnerColor,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: `0 0 14px ${playerColor}99`,
+              boxShadow: `0 0 14px ${castleOwnerColor}99`,
               border: '2px solid #ffffff',
               color: '#ffffff',
               fontWeight: 900,
@@ -296,7 +299,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
       if (selectedTilePreview) {
         return getTileStyle(selectedTilePreview).bg;
       }
-      return 'rgba(245, 158, 11, 0.25)';
+      return `${playerColor}26`;
     }
     return 'rgba(15, 23, 42, 0.85)';
   };
@@ -306,9 +309,19 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
       if (selectedTilePreview) {
         return `0 0 15px ${getTileStyle(selectedTilePreview).glowColor}`;
       }
-      return '0 0 15px rgba(245, 158, 11, 0.4)';
+      return `0 0 15px ${playerColor}66`;
     }
     return 'none';
+  };
+
+  const getHoverBorder = () => {
+    if (isHovered && isValidTarget && isMyTurn) {
+      if (selectedTilePreview) {
+        return `2px dashed ${getTileStyle(selectedTilePreview).borderColor}`;
+      }
+      return `2px dashed ${playerColor}`;
+    }
+    return '1px solid #334155';
   };
 
   return (
@@ -320,7 +333,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
         aspectRatio: '1',
         minHeight: '75px',
         backgroundColor: getCellBackground(),
-        border: isHovered && isValidTarget && isMyTurn ? '2px dashed #f59e0b' : '1px solid #334155',
+        border: getHoverBorder(),
         borderRadius: '10px',
         display: 'flex',
         alignItems: 'center',

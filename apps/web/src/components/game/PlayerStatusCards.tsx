@@ -101,6 +101,42 @@ export const PlayerStatusCards: React.FC<PlayerStatusCardsProps> = ({
                         YOU
                       </span>
                     )}
+                    <span
+                      title={`Player Color: ${playerColor}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        padding: '0.1rem 0.45rem',
+                        backgroundColor: `${playerColor}22`,
+                        border: `1px solid ${playerColor}66`,
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        color: playerColor,
+                        fontWeight: 700,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: playerColor,
+                          boxShadow: `0 0 6px ${playerColor}`,
+                          display: 'inline-block',
+                        }}
+                      />
+                      {playerColor === '#ef4444'
+                        ? 'Red'
+                        : playerColor === '#3b82f6'
+                        ? 'Blue'
+                        : playerColor === '#10b981'
+                        ? 'Green'
+                        : playerColor === '#f59e0b'
+                        ? 'Yellow'
+                        : 'Color'}
+                    </span>
                   </span>
                 </div>
               </div>
