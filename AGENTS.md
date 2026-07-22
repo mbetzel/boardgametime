@@ -12,6 +12,7 @@ wsl -d Ubuntu --cd /home/mike/github/boardgametime <command>
 - **Planning & Architectural Reasoning**: High-level planning, requirements drafting, ADR design, and complex problem decomposition are performed using **Frontier / Pro models** (`pro`). If frontier credits are unavailable or exhausted, fall back to **Medium models** (`flash`).
 - **Code Execution & Implementation**: Code generation, file edits, test suite execution, and build tasks are delegated to **Faster / Cheaper models** (`flash` / `flash_lite`).
 - **Bug Investigation & Resolution**: When the user requests a bug investigation or fix—including by pasting a screenshot or error log from a console or application failure—delegate the diagnostic investigation and code resolution to a low-cost agent (`Model: 'flash'`).
+- **Workspace Isolation**: When invoking subagents via `invoke_subagent`, ALWAYS set `Workspace: 'branch'` (or `'share'`) to create isolated worktrees/branches. This ensures multiple subagents can run concurrently without file or git conflicts.
 
 ---
 
