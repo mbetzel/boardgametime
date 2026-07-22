@@ -60,6 +60,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ?? (['POST', 'PUT', 'PATCH'].includes(method) ? JSON.stringify({}) : undefined);
+
   const path = endpoint.startsWith('/api/') || endpoint === '/api'
     ? endpoint
     : `/api${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
@@ -67,6 +70,7 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
+    body,
   });
 
   const data = await response.json().catch(() => ({}));
@@ -128,15 +132,18 @@ export async function joinLobby(id: string, data?: JoinLobbyRequest): Promise<Lo
 export async function toggleReady(id: string, data: ToggleReadyRequest): Promise<LobbyDTO> {
   return fetchApi<LobbyDTO>(`/api/lobbies/${id}/ready`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(data || {}),
   });
 }
 
 export async function startGame(id: string): Promise<{ matchId: string; match: MatchDTO }> {
   return fetchApi<{ matchId: string; match: MatchDTO }>(`/api/lobbies/${id}/start`, {
     method: 'POST',
+    body: JSON.stringify({}),
   });
 }
+
+export const startLobby = startGame;
 
 // Matches API
 export async function getMatch(id: string): Promise<MatchDTO> {
