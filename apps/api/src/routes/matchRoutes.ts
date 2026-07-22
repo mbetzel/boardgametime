@@ -47,7 +47,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
 
-    const { status } = (request.query as { status?: string }) || {};
+    const { status = 'IN_PROGRESS' } = (request.query as { status?: string }) || {};
 
     const whereClause: any = {
       players: {
@@ -57,7 +57,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
       },
     };
 
-    if (status && status.toUpperCase() !== 'ALL') {
+    if (status.toUpperCase() !== 'ALL') {
       whereClause.status = status.toUpperCase();
     }
 
