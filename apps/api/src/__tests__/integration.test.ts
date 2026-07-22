@@ -330,7 +330,7 @@ describe('API Integration Workflows', () => {
       ],
     };
 
-    vi.spyOn(prisma.match, 'findMany').mockResolvedValueOnce([mockMatch] as any);
+    const findManySpy = vi.spyOn(prisma.match, 'findMany').mockResolvedValue([mockMatch] as any);
 
     const res = await app.inject({
       method: 'GET',
@@ -346,5 +346,24 @@ describe('API Integration Workflows', () => {
     expect(body.length).toBe(1);
     expect(body[0].id).toBe(matchId || 'match-123-abc');
     expect(body[0].players[0].username).toBe('integration_alice');
+    expect(findManySpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'IN_PROGRESS' }),
+      })
+    );
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/matches?status=ALL',
+      headers: {
+        authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    expect(findManySpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.not.objectContaining({ status: expect.anything() }),
+      })
+    );
   });
 });

@@ -30,9 +30,9 @@ export default function HomePage() {
 
     if (currentUser) {
       setLoadingMatches(true);
-      getUserMatches()
+      getUserMatches('IN_PROGRESS')
         .then((data) => {
-          setMatches(data);
+          setMatches(data.filter((m) => m.status === 'IN_PROGRESS'));
         })
         .catch((err: any) => {
           setMatchesError(err.message || 'Failed to load ongoing matches');
