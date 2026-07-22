@@ -49,7 +49,7 @@ export default function LobbyDetailPage() {
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
         <p style={{ color: '#f87171', fontSize: '1.2rem' }}>{error || 'Lobby not found'}</p>
         <button
-          onClick={() => router.push('/lobbies')}
+          onClick={() => router.push('/')}
           style={{
             padding: '0.5rem 1rem',
             backgroundColor: '#f59e0b',
@@ -60,7 +60,7 @@ export default function LobbyDetailPage() {
             fontWeight: 700,
           }}
         >
-          Return to Lobbies
+          Return to Home
         </button>
       </main>
     );

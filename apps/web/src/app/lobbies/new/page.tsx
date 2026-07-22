@@ -117,14 +117,10 @@ export default function CreateLobbyPage() {
             </span>
           </Link>
 
-          {/* Navigation Links back to Home / Lobbies */}
+          {/* Navigation Links back to Home */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Link href="/" style={{ color: '#94a3b8', fontSize: '0.95rem', fontWeight: 500, textDecoration: 'none' }}>
               Home
-            </Link>
-            <span style={{ color: '#475569' }}>/</span>
-            <Link href="/lobbies" style={{ color: '#94a3b8', fontSize: '0.95rem', fontWeight: 500, textDecoration: 'none' }}>
-              Lobbies
             </Link>
             {user && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '1rem', borderLeft: '1px solid #334155', paddingLeft: '1rem' }}>
@@ -159,7 +155,7 @@ export default function CreateLobbyPage() {
         {/* Back Link */}
         <div style={{ marginBottom: '1.5rem' }}>
           <Link
-            href="/lobbies"
+            href="/"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -171,7 +167,7 @@ export default function CreateLobbyPage() {
               transition: 'color 0.2s',
             }}
           >
-            ← Back to Lobbies
+            ← Back to Home
           </Link>
         </div>
 

@@ -25,12 +25,13 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
 
 ### 2.2 Sign In (`/auth/login`)
 - Dedicated URL route: `/auth/login`.
-- Form with Username and Password fields.
-- "Sign In" primary action button connected to JWT authentication.
+- Form with Username/Email and Password fields.
+- "Sign In" primary action button connected to JWT authentication, redirecting back to the Home Page (`/`).
 - "Sign In with Google" button:
-  - Local Dev Environment: Triggers a mock Google sign-in flow for easy testing without external credentials.
+  - Local Dev Environment: Triggers a mock Google sign-in flow for easy testing without external credentials, redirecting to `/`.
   - Production Environment: Triggers Google OAuth 2.0 redirect flow.
 - Link to Create Account (`/auth/register`).
+
 
 ### 2.3 Create Account (`/auth/register`)
 - Dedicated URL route: `/auth/register`.

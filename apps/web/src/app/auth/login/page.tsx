@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       await login({ email: identifier, password });
-      router.push('/lobbies');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -45,7 +45,7 @@ export default function LoginPage() {
       const mockToken = 'mock_google_jwt_token_local_dev';
       setAuthToken(mockToken);
       setStoredUser(mockGoogleUser);
-      router.push('/lobbies');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Mock Google Auth failed.');
     } finally {

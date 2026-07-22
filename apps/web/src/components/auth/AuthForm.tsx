@@ -41,7 +41,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ initialRegister = false }) =
       } else {
         await login({ email, password });
       }
-      router.push('/lobbies');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -64,7 +64,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ initialRegister = false }) =
       const mockToken = 'mock_google_jwt_token_local_dev';
       setAuthToken(mockToken);
       setStoredUser(mockGoogleUser);
-      router.push('/lobbies');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Mock Google Auth failed.');
     } finally {

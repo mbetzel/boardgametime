@@ -10,13 +10,14 @@ import { Modal } from '../ui/Modal';
 import { CreateLobbyModal } from './CreateLobbyModal';
 import { listLobbies, joinLobby, getStoredUser } from '../../lib/api';
 import { getLobbySocket } from '../../lib/socket';
-import { LobbyDTO } from '@boardgametime/types';
+import { LobbyDTO, UserDTO } from '@boardgametime/types';
 
 export const LobbyList: React.FC = () => {
   const router = useRouter();
   const [lobbies, setLobbies] = useState<LobbyDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserDTO | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [joinCode, setJoinCode] = useState('');
@@ -35,6 +36,7 @@ export const LobbyList: React.FC = () => {
   };
 
   useEffect(() => {
+    setCurrentUser(getStoredUser());
     fetchLobbiesList();
 
     const socket = getLobbySocket();
@@ -94,8 +96,6 @@ export const LobbyList: React.FC = () => {
       setJoining(false);
     }
   };
-
-  const currentUser = getStoredUser();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '900px', margin: '0 auto' }}>

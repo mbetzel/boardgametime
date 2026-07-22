@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
     try {
       await register({ username, email, password });
-      router.push('/lobbies');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Account creation failed. Please try again.');
     } finally {

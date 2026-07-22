@@ -10,7 +10,7 @@ import { TurnHistoryLog } from '../../../components/game/TurnHistoryLog';
 import { ScoringBreakdownModal } from '../../../components/game/ScoringBreakdownModal';
 import { getMatch, submitAction, getMatchEvents, getStoredUser } from '../../../lib/api';
 import { getMatchSocket } from '../../../lib/socket';
-import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
+import { MatchDTO, MatchEventDTO, UserDTO } from '@boardgametime/types';
 import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game-kingdoms';
 
 export default function MatchPage() {
@@ -27,12 +27,14 @@ export default function MatchPage() {
   const [selectedAction, setSelectedAction] = useState<SelectedActionType>(null);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [lastScoring, setLastScoring] = useState<GameScoringSummary | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserDTO | null>(null);
 
-  const currentUser = getStoredUser();
   const currentUserId = currentUser?.id;
 
   // Load initial match data & turn history events
   useEffect(() => {
+    setCurrentUser(getStoredUser());
+
     if (!matchId) return;
 
     const loadMatchData = async () => {
@@ -115,7 +117,7 @@ export default function MatchPage() {
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', backgroundColor: '#090d16' }}>
         <p style={{ color: '#f87171', fontSize: '1.2rem', fontWeight: 700 }}>{error || 'Match not found'}</p>
         <button
-          onClick={() => router.push('/lobbies')}
+          onClick={() => router.push('/')}
           style={{
             padding: '0.6rem 1.2rem',
             backgroundColor: '#f59e0b',
@@ -126,7 +128,7 @@ export default function MatchPage() {
             fontWeight: 800,
           }}
         >
-          Return to Lobbies
+          Return to Home
         </button>
       </main>
     );

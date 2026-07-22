@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { toggleReady, startGame, getStoredUser } from '../../lib/api';
 import { getLobbySocket } from '../../lib/socket';
-import { LobbyDTO } from '@boardgametime/types';
+import { LobbyDTO, UserDTO } from '@boardgametime/types';
 
 export interface LobbyRoomProps {
   initialLobby: LobbyDTO;
@@ -18,14 +18,16 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
   const [lobby, setLobby] = useState<LobbyDTO>(initialLobby);
   const [loadingAction, setLoadingAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserDTO | null>(null);
 
-  const currentUser = getStoredUser();
   const currentUserId = currentUser?.id;
   const isHost = lobby.hostId === currentUserId;
   const myPlayerSlot = lobby.players.find((p) => p.userId === currentUserId);
   const isReady = myPlayerSlot?.isReady || false;
 
   useEffect(() => {
+    setCurrentUser(getStoredUser());
+
     const socket = getLobbySocket();
     socket.emit('join_room', lobby.id);
 
@@ -158,8 +160,8 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
 
         {/* Action Controls */}
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button variant="secondary" onClick={() => router.push('/lobbies')}>
-            Back to Lobbies
+          <Button variant="secondary" onClick={() => router.push('/')}>
+            Back to Home
           </Button>
 
           <Button
