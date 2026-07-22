@@ -1,5 +1,6 @@
 import React from 'react';
-import { BoardCell, KingdomsPlayerState } from '@boardgametime/game-kingdoms';
+import { BoardCell, KingdomsPlayerState, Tile } from '@boardgametime/game-kingdoms';
+import { SelectedActionType } from './PlayerHandControls';
 
 export interface BoardCellComponentProps {
   row: number;
@@ -10,6 +11,95 @@ export interface BoardCellComponentProps {
   isValidTarget: boolean;
   onCellClick: (row: number, col: number) => void;
   hoverActionText?: string;
+  selectedAction?: SelectedActionType;
+  selectedTilePreview?: Tile | null;
+}
+
+export interface TileStyle {
+  bg: string;
+  border: string;
+  borderColor: string;
+  glowColor: string;
+  icon: string;
+  textColor: string;
+  label: string;
+  valueText: string;
+}
+
+export function getTileStyle(tile: Tile): TileStyle {
+  let bg = '#1e293b';
+  let border = '1px solid #475569';
+  let borderColor = '#475569';
+  let glowColor = 'rgba(245, 158, 11, 0.4)';
+  let icon = '📜';
+  let textColor = '#f8fafc';
+  let label = tile.name;
+  let valueText = `${tile.value}`;
+
+  switch (tile.type as string) {
+    case 'RESOURCE':
+      bg = 'rgba(59, 130, 246, 0.25)';
+      border = '2px solid #3b82f6';
+      borderColor = '#3b82f6';
+      glowColor = 'rgba(59, 130, 246, 0.5)';
+      icon = '📜';
+      textColor = '#60a5fa';
+      label = tile.name || 'Resource';
+      valueText = tile.value > 0 ? `+${tile.value}` : `${tile.value}`;
+      break;
+    case 'HAZARD':
+      bg = 'rgba(239, 68, 68, 0.25)';
+      border = '2px solid #ef4444';
+      borderColor = '#ef4444';
+      glowColor = 'rgba(239, 68, 68, 0.5)';
+      icon = '💥';
+      textColor = '#f87171';
+      label = tile.name || 'Hazard';
+      valueText = `${tile.value}`;
+      break;
+    case 'GOLD_MINE':
+      bg = 'rgba(245, 158, 11, 0.3)';
+      border = '2px solid #f59e0b';
+      borderColor = '#f59e0b';
+      glowColor = 'rgba(245, 158, 11, 0.5)';
+      icon = '🪙';
+      textColor = '#f59e0b';
+      label = tile.name || 'Gold Mine';
+      valueText = 'Gold Mine';
+      break;
+    case 'MOUNTAIN':
+      bg = 'rgba(100, 116, 139, 0.4)';
+      border = '2px solid #64748b';
+      borderColor = '#64748b';
+      glowColor = 'rgba(100, 116, 139, 0.5)';
+      icon = '🏔️';
+      textColor = '#cbd5e1';
+      label = tile.name || 'Mountain';
+      valueText = 'Mountain';
+      break;
+    case 'DRAGON':
+      bg = 'rgba(168, 85, 247, 0.3)';
+      border = '2px solid #a855f7';
+      borderColor = '#a855f7';
+      glowColor = 'rgba(168, 85, 247, 0.5)';
+      icon = '🐉';
+      textColor = '#c084fc';
+      label = tile.name || 'Dragon';
+      valueText = 'Dragon';
+      break;
+    case 'WIZARD':
+      bg = 'rgba(236, 72, 153, 0.3)';
+      border = '2px solid #ec4899';
+      borderColor = '#ec4899';
+      glowColor = 'rgba(236, 72, 153, 0.5)';
+      icon = '🧙‍♂️';
+      textColor = '#f472b6';
+      label = tile.name || 'Wizard';
+      valueText = 'Wizard';
+      break;
+  }
+
+  return { bg, border, borderColor, glowColor, icon, textColor, label, valueText };
 }
 
 export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
@@ -21,6 +111,8 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
   isValidTarget,
   onCellClick,
   hoverActionText,
+  selectedAction,
+  selectedTilePreview,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -33,6 +125,85 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
   const renderCellContent = () => {
     if (cell.type === 'EMPTY') {
       if (isHovered && isValidTarget && isMyTurn) {
+        if (selectedAction?.kind === 'CASTLE') {
+          return (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                opacity: 0.8,
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 14px rgba(245, 158, 11, 0.6)',
+                  border: '2px dashed #f59e0b',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                }}
+              >
+                🏰{selectedAction.rank}
+              </div>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+                Rank {selectedAction.rank}
+              </span>
+            </div>
+          );
+        }
+
+        if (
+          (selectedAction?.kind === 'DRAW_TILE' || selectedAction?.kind === 'SECRET_TILE') &&
+          selectedTilePreview
+        ) {
+          const tileStyle = getTileStyle(selectedTilePreview);
+          return (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                backgroundColor: tileStyle.bg,
+                border: `2px dashed ${tileStyle.borderColor}`,
+                borderRadius: '8px',
+                padding: '2px',
+                opacity: 0.8,
+                boxShadow: `0 0 12px ${tileStyle.glowColor}`,
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>{tileStyle.icon}</span>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  color: tileStyle.textColor,
+                  textAlign: 'center',
+                  lineHeight: 1.1,
+                }}
+              >
+                {tileStyle.label}
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: tileStyle.textColor }}>
+                {tileStyle.valueText}
+              </span>
+            </div>
+          );
+        }
+
         return (
           <div
             style={{
@@ -92,51 +263,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
     }
 
     if (cell.type === 'TILE') {
-      const { tile } = cell;
-      let bg = '#1e293b';
-      let border = '1px solid #475569';
-      let icon = '📜';
-      let textColor = '#f8fafc';
-      let label = tile.name;
-
-      switch (tile.type) {
-        case 'RESOURCE':
-          bg = 'rgba(59, 130, 246, 0.25)';
-          border = '2px solid #3b82f6';
-          icon = '🌾';
-          textColor = '#60a5fa';
-          label = `+${tile.value}`;
-          break;
-        case 'HAZARD':
-          bg = 'rgba(239, 68, 68, 0.25)';
-          border = '2px solid #ef4444';
-          icon = '⚔️';
-          textColor = '#f87171';
-          label = `${tile.value}`;
-          break;
-        case 'GOLD_MINE':
-          bg = 'rgba(245, 158, 11, 0.3)';
-          border = '2px solid #f59e0b';
-          icon = '🪙';
-          textColor = '#f59e0b';
-          label = 'x2 MINE';
-          break;
-        case 'MOUNTAIN':
-          bg = 'rgba(100, 116, 139, 0.4)';
-          border = '2px solid #64748b';
-          icon = '🏔️';
-          textColor = '#cbd5e1';
-          label = 'WALL';
-          break;
-        case 'DRAGON':
-          bg = 'rgba(168, 85, 247, 0.3)';
-          border = '2px solid #a855f7';
-          icon = '🐉';
-          textColor = '#c084fc';
-          label = 'DRAGON';
-          break;
-      }
-
+      const tileStyle = getTileStyle(cell.tile);
       return (
         <div
           style={{
@@ -146,14 +273,16 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
             justifyContent: 'center',
             width: '100%',
             height: '100%',
-            backgroundColor: bg,
-            border,
+            backgroundColor: tileStyle.bg,
+            border: tileStyle.border,
             borderRadius: '8px',
             padding: '2px',
           }}
         >
-          <span style={{ fontSize: '1.25rem' }}>{icon}</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: textColor }}>{label}</span>
+          <span style={{ fontSize: '1.25rem' }}>{tileStyle.icon}</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: tileStyle.textColor }}>
+            {tileStyle.valueText}
+          </span>
         </div>
       );
     }
@@ -163,8 +292,23 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
 
   const getCellBackground = () => {
     if (cell.type !== 'EMPTY') return 'rgba(30, 41, 59, 0.7)';
-    if (isHovered && isValidTarget && isMyTurn) return 'rgba(245, 158, 11, 0.25)';
+    if (isHovered && isValidTarget && isMyTurn) {
+      if (selectedTilePreview) {
+        return getTileStyle(selectedTilePreview).bg;
+      }
+      return 'rgba(245, 158, 11, 0.25)';
+    }
     return 'rgba(15, 23, 42, 0.85)';
+  };
+
+  const getCellBoxShadow = () => {
+    if (isHovered && isValidTarget && isMyTurn) {
+      if (selectedTilePreview) {
+        return `0 0 15px ${getTileStyle(selectedTilePreview).glowColor}`;
+      }
+      return '0 0 15px rgba(245, 158, 11, 0.4)';
+    }
+    return 'none';
   };
 
   return (
@@ -185,7 +329,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
         transition: 'all 0.15s ease-in-out',
         position: 'relative',
         userSelect: 'none',
-        boxShadow: isHovered && isValidTarget && isMyTurn ? '0 0 15px rgba(245, 158, 11, 0.4)' : 'none',
+        boxShadow: getCellBoxShadow(),
       }}
     >
       {renderCellContent()}

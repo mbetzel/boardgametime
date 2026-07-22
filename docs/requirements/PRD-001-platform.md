@@ -3,7 +3,7 @@
 - **Document ID**: PRD-001
 - **Status**: Approved / Active
 - **Target Release**: MVP v1.0
-- **Primary Game**: *Kingdoms* (Fantasy Flight Games 2002 Edition by Reiner Knizia)
+- **Game PRD Mapping**: [PRD-002 Kingdoms Game Specifications](file:///Z:/home/mike/github/boardgametime/docs/requirements/PRD-002-kingdoms.md)
 
 ---
 
@@ -22,7 +22,6 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
 - **Games Section**: Display gallery of available titles (*Kingdoms*) alongside coming-soon cards for future games (e.g., *Catan*, *Carcassonne* placeholders).
 - **Active Game Rooms Section**: Displays list of open public game rooms with instant "Join" actions.
 - **My Games (Current Games) Section**: Displays a list of active matches in progress that the currently logged-in user is participating in (with match ID, game title, current epoch/turn status, and instant "Rejoin Match" action). Visible when authenticated.
-
 
 ### 2.2 Sign In (`/auth/login`)
 - Dedicated URL route: `/auth/login`.
@@ -48,11 +47,11 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
   - **Game Settings**: Play mode (`REALTIME` vs `ASYNC`), Visibility (`PUBLIC` vs `PRIVATE` with 6-char invite code).
   - **Action**: "Create Lobby" button creating room and redirecting host to waiting room.
 
-### 2.5 Game Play (`/matches/[id]`)
-- **Layout**: Two-column responsive interface matching Wireframe Page 5:
-  - **Left Section (Main Canvas)**: Interactive 5x6 game board grid, hover cell target indicators, castle rank tray (Ranks 1–4), draw pile counter, secret tile hand view, and turn pass button.
+### 2.5 Game Play Container (`/matches/[id]`)
+- **Container Layout**: Two-column responsive interface matching Wireframe Page 5:
+  - **Left Section (Main Canvas)**: Renders the active game board grid, action controls, and tile/castle placement preview overlays (delegated to individual game engines as specified in game PRDs such as [PRD-002](file:///Z:/home/mike/github/boardgametime/docs/requirements/PRD-002-kingdoms.md)).
   - **Right Sidebar (Stacked Cards & History)**:
-    - **Player Info Cards**: Stacked cards (Players 1–4) showing player color badge, gold score, remaining castles, and active turn glow.
+    - **Player Info Cards**: Stacked cards (Players 1–4) showing player color badge, gold/score, remaining inventory, and active turn glow.
     - **Turn History Log**: Scrollable timeline recording every action performed in the match (`MatchEvent` feed).
 
 ---

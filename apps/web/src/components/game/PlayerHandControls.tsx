@@ -12,6 +12,7 @@ export type SelectedActionType =
 export interface PlayerHandControlsProps {
   playerState?: KingdomsPlayerState;
   drawPileCount: number;
+  nextDrawTile?: Tile | null;
   isMyTurn: boolean;
   selectedAction: SelectedActionType;
   onSelectAction: (action: SelectedActionType) => void;
@@ -19,9 +20,45 @@ export interface PlayerHandControlsProps {
   isLoading?: boolean;
 }
 
+const getTileIcon = (tile: Tile): string => {
+  switch (tile.type) {
+    case 'RESOURCE': return '📜';
+    case 'HAZARD': return '💥';
+    case 'DRAGON': return '🐉';
+    case 'GOLD_MINE': return '🪙';
+    case 'MOUNTAIN': return '🏔️';
+    default: return '📜';
+  }
+};
+
+export const formatNextTileBadgeText = (tile: Tile): string => {
+  const icon = getTileIcon(tile);
+  if (tile.type === 'RESOURCE') {
+    const valStr = tile.value > 0 ? `+${tile.value}` : `${tile.value}`;
+    const text = tile.name.includes('(') ? tile.name : `${tile.name || 'Resource'} (${valStr})`;
+    return `${icon} Next Tile: ${text}`;
+  }
+  if (tile.type === 'HAZARD') {
+    const text = tile.name.includes('(') ? tile.name : `${tile.name || 'Hazard'} (${tile.value})`;
+    return `${icon} Next Tile: ${text}`;
+  }
+  return `${icon} Special: ${tile.name || tile.type}`;
+};
+
+export const formatSecretTileBadgeText = (tile: Tile): string => {
+  if (tile.name.includes('(')) {
+    return `🕵️ Secret Tile: ${tile.name}`;
+  }
+  let valStr = `${tile.value}`;
+  if (tile.type === 'RESOURCE' && tile.value > 0) valStr = `+${tile.value}`;
+  if (tile.value === 0) valStr = 'Special';
+  return `🕵️ Secret Tile: ${tile.name} (${valStr})`;
+};
+
 export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
   playerState,
   drawPileCount,
+  nextDrawTile,
   isMyTurn,
   selectedAction,
   onSelectAction,
@@ -103,49 +140,92 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
       </div>
 
       {/* Tile Action Trays: Draw Tile & Secret Tile */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        {/* Draw & Place Tile Action */}
-        <Button
-          variant={selectedAction?.kind === 'DRAW_TILE' ? 'gold' : 'secondary'}
-          disabled={!isMyTurn || drawPileCount <= 0 || isLoading}
-          onClick={() =>
-            onSelectAction(selectedAction?.kind === 'DRAW_TILE' ? null : { kind: 'DRAW_TILE' })
-          }
-          style={{ flex: 1, minWidth: '180px' }}
-        >
-          📜 Draw & Place Tile ({drawPileCount} remaining)
-        </Button>
-
-        {/* Secret Tile Action */}
-        {secretTile ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Draw & Place Tile Action */}
           <Button
-            variant={selectedAction?.kind === 'SECRET_TILE' ? 'gold' : 'secondary'}
-            disabled={!isMyTurn || isLoading}
+            variant={selectedAction?.kind === 'DRAW_TILE' ? 'gold' : 'secondary'}
+            disabled={!isMyTurn || drawPileCount <= 0 || isLoading}
             onClick={() =>
-              onSelectAction(selectedAction?.kind === 'SECRET_TILE' ? null : { kind: 'SECRET_TILE' })
+              onSelectAction(selectedAction?.kind === 'DRAW_TILE' ? null : { kind: 'DRAW_TILE' })
             }
             style={{ flex: 1, minWidth: '180px' }}
           >
-            🕵️ Secret Tile ({secretTile.name})
+            📜 Draw & Place Tile ({drawPileCount} remaining)
           </Button>
-        ) : (
+
+          {/* Secret Tile Action */}
+          {secretTile ? (
+            <Button
+              variant={selectedAction?.kind === 'SECRET_TILE' ? 'gold' : 'secondary'}
+              disabled={!isMyTurn || isLoading}
+              onClick={() =>
+                onSelectAction(selectedAction?.kind === 'SECRET_TILE' ? null : { kind: 'SECRET_TILE' })
+              }
+              style={{ flex: 1, minWidth: '180px' }}
+            >
+              🕵️ Secret Tile ({secretTile.name})
+            </Button>
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                minWidth: '180px',
+                padding: '0.6rem',
+                borderRadius: '8px',
+                backgroundColor: '#0f172a',
+                border: '1px dashed #334155',
+                color: '#64748b',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              🕵️ Secret Tile Used
+            </div>
+          )}
+        </div>
+
+        {/* Adjacent Prominent Preview Badges */}
+        {selectedAction?.kind === 'DRAW_TILE' && nextDrawTile && (
           <div
             style={{
-              flex: 1,
-              minWidth: '180px',
-              padding: '0.6rem',
-              borderRadius: '8px',
-              backgroundColor: '#0f172a',
-              border: '1px dashed #334155',
-              color: '#64748b',
-              fontSize: '0.85rem',
-              textAlign: 'center',
+              padding: '0.6rem 1rem',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+              border: '1.5px solid #f59e0b',
+              color: '#f59e0b',
+              fontWeight: 800,
+              fontSize: '0.9rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 0 12px rgba(245, 158, 11, 0.25)',
             }}
           >
-            🕵️ Secret Tile Used
+            {formatNextTileBadgeText(nextDrawTile)}
+          </div>
+        )}
+
+        {selectedAction?.kind === 'SECRET_TILE' && secretTile && (
+          <div
+            style={{
+              padding: '0.6rem 1rem',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(168, 85, 247, 0.15)',
+              border: '1.5px solid #a855f7',
+              color: '#c084fc',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 0 12px rgba(168, 85, 247, 0.25)',
+            }}
+          >
+            {formatSecretTileBadgeText(secretTile)}
           </div>
         )}
       </div>
@@ -165,7 +245,14 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
         <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
           {selectedAction ? (
             <strong style={{ color: '#f59e0b' }}>
-              Selected: {selectedAction.kind === 'CASTLE' ? `Castle Rank ${selectedAction.rank}` : selectedAction.kind === 'DRAW_TILE' ? 'Draw Tile' : 'Secret Tile'} — Click board cell to place!
+              Selected:{' '}
+              {selectedAction.kind === 'CASTLE'
+                ? `Castle Rank ${selectedAction.rank}`
+                : selectedAction.kind === 'DRAW_TILE'
+                  ? (nextDrawTile ? formatNextTileBadgeText(nextDrawTile) : 'Draw Tile')
+                  : (secretTile ? formatSecretTileBadgeText(secretTile) : 'Secret Tile')
+              }{' '}
+              — Click board cell to place!
             </strong>
           ) : (
             'Select an action above to target a cell on the board.'

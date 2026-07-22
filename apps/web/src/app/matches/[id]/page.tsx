@@ -11,7 +11,7 @@ import { ScoringBreakdownModal } from '../../../components/game/ScoringBreakdown
 import { getMatch, submitAction, getMatchEvents, getStoredUser } from '../../../lib/api';
 import { getMatchSocket } from '../../../lib/socket';
 import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
-import { KingdomsGameState, GameScoringSummary } from '@boardgametime/game-kingdoms';
+import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game-kingdoms';
 
 export default function MatchPage() {
   const params = useParams();
@@ -135,6 +135,8 @@ export default function MatchPage() {
   const gameState = match.stateSnapshot as KingdomsGameState;
   const isMyTurn = gameState.activePlayerId === currentUserId;
   const myPlayerState = currentUserId ? gameState.players[currentUserId] : undefined;
+  const drawPile = gameState.drawPile || [];
+  const nextDrawTile = drawPile.length > 0 ? drawPile[drawPile.length - 1] : null;
 
   const handleCellClick = async (row: number, col: number) => {
     if (!isMyTurn || !selectedAction) return;
@@ -238,12 +240,16 @@ export default function MatchPage() {
             isMyTurn={isMyTurn}
             onCellClick={handleCellClick}
             selectedActionText={selectedActionText}
+            selectedAction={selectedAction}
+            nextDrawTile={nextDrawTile}
+            secretTile={myPlayerState?.secretTile as Tile | null ?? null}
           />
 
           {!gameState.isComplete && (
             <PlayerHandControls
               playerState={myPlayerState}
               drawPileCount={gameState.drawPile?.length || 0}
+              nextDrawTile={nextDrawTile}
               isMyTurn={isMyTurn}
               selectedAction={selectedAction}
               onSelectAction={setSelectedAction}

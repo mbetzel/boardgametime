@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardCellComponent } from './BoardCellComponent';
-import { BoardCell, KingdomsPlayerState } from '@boardgametime/game-kingdoms';
+import { SelectedActionType } from './PlayerHandControls';
+import { BoardCell, KingdomsPlayerState, Tile } from '@boardgametime/game-kingdoms';
 
 export interface BoardGridProps {
   board: BoardCell[][]; // 6 rows x 5 columns
@@ -8,6 +9,9 @@ export interface BoardGridProps {
   isMyTurn: boolean;
   onCellClick: (row: number, col: number) => void;
   selectedActionText?: string;
+  selectedAction?: SelectedActionType;
+  nextDrawTile?: Tile | null;
+  secretTile?: Tile | null;
 }
 
 export const BoardGrid: React.FC<BoardGridProps> = ({
@@ -16,7 +20,17 @@ export const BoardGrid: React.FC<BoardGridProps> = ({
   isMyTurn,
   onCellClick,
   selectedActionText,
+  selectedAction,
+  nextDrawTile,
+  secretTile,
 }) => {
+  let selectedTilePreview: Tile | null = null;
+  if (selectedAction?.kind === 'DRAW_TILE') {
+    selectedTilePreview = nextDrawTile ?? null;
+  } else if (selectedAction?.kind === 'SECRET_TILE') {
+    selectedTilePreview = secretTile ?? null;
+  }
+
   return (
     <div
       style={{
@@ -61,6 +75,8 @@ export const BoardGrid: React.FC<BoardGridProps> = ({
               isValidTarget={cell.type === 'EMPTY'}
               onCellClick={onCellClick}
               hoverActionText={selectedActionText}
+              selectedAction={selectedAction}
+              selectedTilePreview={selectedTilePreview}
             />
           ))
         )}
