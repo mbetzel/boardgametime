@@ -105,6 +105,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
             const count = castleItem ? castleItem.count : 0;
             const isSelected = selectedAction?.kind === 'CASTLE' && selectedAction.rank === rank;
             const hasCastles = count > 0;
+            const playerColor = playerState?.color || '#f59e0b';
 
             return (
               <button
@@ -116,8 +117,8 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
                 style={{
                   padding: '0.6rem 0.4rem',
                   borderRadius: '10px',
-                  backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.3)' : '#0f172a',
-                  border: isSelected ? '2px solid #f59e0b' : '1px solid #334155',
+                  backgroundColor: isSelected ? `${playerColor}33` : '#0f172a',
+                  border: isSelected ? `2px solid ${playerColor}` : '1px solid #334155',
                   color: hasCastles ? '#f8fafc' : '#64748b',
                   cursor: isMyTurn && hasCastles ? 'pointer' : 'not-allowed',
                   display: 'flex',
@@ -126,11 +127,11 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
                   gap: '0.2rem',
                   transition: 'all 0.15s ease-in-out',
                   opacity: hasCastles ? 1 : 0.4,
-                  boxShadow: isSelected ? '0 0 12px rgba(245, 158, 11, 0.4)' : 'none',
+                  boxShadow: isSelected ? `0 0 12px ${playerColor}66` : 'none',
                 }}
               >
                 <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Rank {rank}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isSelected ? '#f59e0b' : '#94a3b8' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isSelected ? playerColor : '#94a3b8' }}>
                   {count} left
                 </span>
               </button>

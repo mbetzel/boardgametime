@@ -12,6 +12,7 @@ export interface BoardGridProps {
   selectedAction?: SelectedActionType;
   nextDrawTile?: Tile | null;
   secretTile?: Tile | null;
+  activePlayerColor?: string;
 }
 
 export const BoardGrid: React.FC<BoardGridProps> = ({
@@ -23,6 +24,7 @@ export const BoardGrid: React.FC<BoardGridProps> = ({
   selectedAction,
   nextDrawTile,
   secretTile,
+  activePlayerColor,
 }) => {
   let selectedTilePreview: Tile | null = null;
   if (selectedAction?.kind === 'DRAW_TILE') {
@@ -77,6 +79,7 @@ export const BoardGrid: React.FC<BoardGridProps> = ({
               hoverActionText={selectedActionText}
               selectedAction={selectedAction}
               selectedTilePreview={selectedTilePreview}
+              activePlayerColor={activePlayerColor}
             />
           ))
         )}
