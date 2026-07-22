@@ -49,11 +49,15 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
   - **Action**: "Create Lobby" button creating room and redirecting host to waiting room.
 
 ### 2.5 Game Play Container (`/matches/[id]`)
+- **Global Top Navigation Header**:
+  - Site Title ("Board Game Time") linking back to the Home Page (`/`).
+  - User Status: Displays authenticated username badge + "Sign Out" button (or "Sign In" button when unauthenticated).
 - **Container Layout**: Two-column responsive interface matching Wireframe Page 5:
   - **Left Section (Main Canvas)**: Renders the active game board grid, action controls, and tile/castle placement preview overlays (delegated to individual game engines as specified in game PRDs such as [PRD-002](file:///Z:/home/mike/github/boardgametime/docs/requirements/PRD-002-kingdoms.md)).
   - **Right Sidebar (Stacked Cards & History)**:
     - **Player Info Cards**: Stacked cards (Players 1–4) showing player color badge, gold/score, remaining inventory, and active turn glow.
     - **Turn History Log**: Scrollable timeline recording every action performed in the match (`MatchEvent` feed).
+
 
 ---
 

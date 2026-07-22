@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { GameHeader } from '../../../components/game/GameHeader';
 import { BoardGrid } from '../../../components/game/BoardGrid';
@@ -8,7 +9,8 @@ import { PlayerHandControls, SelectedActionType } from '../../../components/game
 import { PlayerStatusCards } from '../../../components/game/PlayerStatusCards';
 import { TurnHistoryLog } from '../../../components/game/TurnHistoryLog';
 import { ScoringBreakdownModal } from '../../../components/game/ScoringBreakdownModal';
-import { getMatch, submitAction, getMatchEvents, getStoredUser } from '../../../lib/api';
+import { Button } from '../../../components/ui/Button';
+import { getMatch, submitAction, getMatchEvents, getStoredUser, removeAuthToken } from '../../../lib/api';
 import { getMatchSocket } from '../../../lib/socket';
 import { MatchDTO, MatchEventDTO, UserDTO } from '@boardgametime/types';
 import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game-kingdoms';
@@ -30,6 +32,12 @@ export default function MatchPage() {
   const [currentUser, setCurrentUser] = useState<UserDTO | null>(null);
 
   const currentUserId = currentUser?.id;
+
+  const handleSignOut = () => {
+    removeAuthToken();
+    setCurrentUser(null);
+    router.push('/');
+  };
 
   // Load initial match data & turn history events
   useEffect(() => {
@@ -104,33 +112,129 @@ export default function MatchPage() {
     };
   }, [matchId]);
 
+  const renderTopBanner = () => (
+    <header
+      style={{
+        width: '100%',
+        borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
+        background: 'rgba(15, 23, 42, 0.95)',
+        backdropFilter: 'blur(12px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        padding: '0.85rem 1.5rem',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        {/* Brand Title */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5Z" fill="#0f172a" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M5 19H19" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+          <span
+            style={{
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              color: '#f59e0b',
+              letterSpacing: '-0.02em',
+              textShadow: '0 0 10px rgba(245, 158, 11, 0.2)',
+            }}
+          >
+            Board Game Time
+          </span>
+        </Link>
+
+        {/* User Auth Section */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {currentUser ? (
+            <>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '20px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  color: '#f59e0b',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                <span>👤 {currentUser.username}</span>
+              </div>
+              <Button variant="secondary" size="sm" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Link href="/auth/login" passHref style={{ textDecoration: 'none' }}>
+              <Button variant="gold" size="sm">
+                Sign In
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+
   if (loading) {
     return (
-      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#090d16' }}>
-        <p style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>Loading match board...</p>
-      </main>
+      <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        {renderTopBanner()}
+        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>Loading match board...</p>
+        </main>
+      </div>
     );
   }
 
   if (error || !match) {
     return (
-      <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', backgroundColor: '#090d16' }}>
-        <p style={{ color: '#f87171', fontSize: '1.2rem', fontWeight: 700 }}>{error || 'Match not found'}</p>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            padding: '0.6rem 1.2rem',
-            backgroundColor: '#f59e0b',
-            color: '#0f172a',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 800,
-          }}
-        >
-          Return to Home
-        </button>
-      </main>
+      <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        {renderTopBanner()}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+          <p style={{ color: '#f87171', fontSize: '1.2rem', fontWeight: 700 }}>{error || 'Match not found'}</p>
+          <button
+            onClick={() => router.push('/')}
+            style={{
+              padding: '0.6rem 1.2rem',
+              backgroundColor: '#f59e0b',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 800,
+            }}
+          >
+            Return to Home
+          </button>
+        </main>
+      </div>
     );
   }
 
@@ -205,85 +309,88 @@ export default function MatchPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#090d16',
-        color: '#f8fafc',
-        padding: '1.5rem 1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
-        maxWidth: '1280px',
-        margin: '0 auto',
-      }}
-    >
-      {/* Header */}
-      <GameHeader
-        gameState={gameState}
-        players={match.players}
-        currentUserId={currentUserId}
-        onOpenScoringModal={() => setScoringModalOpen(true)}
-      />
+    <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+      {renderTopBanner()}
 
-      {error && (
-        <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 600 }}>
-          ⚠️ {error}
-        </div>
-      )}
+      <main
+        style={{
+          flex: 1,
+          maxWidth: '1280px',
+          width: '100%',
+          margin: '0 auto',
+          padding: '1.5rem 1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+        }}
+      >
+        {/* Header */}
+        <GameHeader
+          gameState={gameState}
+          players={match.players}
+          currentUserId={currentUserId}
+          onOpenScoringModal={() => setScoringModalOpen(true)}
+        />
 
-      {/* Main 2-Column Game Layout (Wireframe Page 5) */}
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
-        {/* Left Section: 5x6 Board Grid & Player Hand Controls */}
-        <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <BoardGrid
-            board={gameState.board}
-            players={gameState.players}
-            isMyTurn={isMyTurn}
-            onCellClick={handleCellClick}
-            selectedActionText={selectedActionText}
-            selectedAction={selectedAction}
-            nextDrawTile={nextDrawTile}
-            secretTile={myPlayerState?.secretTile as Tile | null ?? null}
-          />
+        {error && (
+          <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 600 }}>
+            ⚠️ {error}
+          </div>
+        )}
 
-          {!gameState.isComplete && (
-            <PlayerHandControls
-              playerState={myPlayerState}
-              drawPileCount={gameState.drawPile?.length || 0}
-              nextDrawTile={nextDrawTile}
+        {/* Main 2-Column Game Layout (Wireframe Page 5) */}
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
+          {/* Left Section: 5x6 Board Grid & Player Hand Controls */}
+          <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <BoardGrid
+              board={gameState.board}
+              players={gameState.players}
               isMyTurn={isMyTurn}
+              onCellClick={handleCellClick}
+              selectedActionText={selectedActionText}
               selectedAction={selectedAction}
-              onSelectAction={setSelectedAction}
-              onPass={handlePass}
-              isLoading={actionLoading}
+              nextDrawTile={nextDrawTile}
+              secretTile={myPlayerState?.secretTile as Tile | null ?? null}
             />
-          )}
+
+            {!gameState.isComplete && (
+              <PlayerHandControls
+                playerState={myPlayerState}
+                drawPileCount={gameState.drawPile?.length || 0}
+                nextDrawTile={nextDrawTile}
+                isMyTurn={isMyTurn}
+                selectedAction={selectedAction}
+                onSelectAction={setSelectedAction}
+                onPass={handlePass}
+                isLoading={actionLoading}
+              />
+            )}
+          </div>
+
+          {/* Right Sidebar Section: Player Status Cards & Turn History Log */}
+          <div style={{ flex: '1 1 340px', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <PlayerStatusCards
+              gameState={gameState}
+              players={match.players}
+              currentUserId={currentUserId}
+            />
+
+            <TurnHistoryLog
+              events={events}
+              players={match.players}
+              lastScoringResult={lastScoring}
+            />
+          </div>
         </div>
 
-        {/* Right Sidebar Section: Player Status Cards & Turn History Log */}
-        <div style={{ flex: '1 1 340px', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <PlayerStatusCards
-            gameState={gameState}
-            players={match.players}
-            currentUserId={currentUserId}
-          />
-
-          <TurnHistoryLog
-            events={events}
-            players={match.players}
-            lastScoringResult={lastScoring}
-          />
-        </div>
-      </div>
-
-      {/* Epoch Scoring Breakdown Modal */}
-      <ScoringBreakdownModal
-        isOpen={scoringModalOpen}
-        onClose={() => setScoringModalOpen(false)}
-        scoringResult={lastScoring}
-        players={match.players}
-      />
-    </main>
+        {/* Epoch Scoring Breakdown Modal */}
+        <ScoringBreakdownModal
+          isOpen={scoringModalOpen}
+          onClose={() => setScoringModalOpen(false)}
+          scoringResult={lastScoring}
+          players={match.players}
+        />
+      </main>
+    </div>
   );
 }
