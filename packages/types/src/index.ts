@@ -1,4 +1,10 @@
 // User & Auth DTOs & Payloads
+export interface EmailPreferencesDTO {
+  gameTurnReminders: boolean;
+  matchUpdates: boolean;
+  newsletter: boolean;
+}
+
 export interface UserDTO {
   id: string;
   username: string;
@@ -6,6 +12,9 @@ export interface UserDTO {
   avatarUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  authProvider?: 'credentials' | 'google' | 'oauth' | string;
+  isOAuth?: boolean;
+  preferences?: EmailPreferencesDTO;
 }
 
 export interface RegisterRequest {
@@ -18,6 +27,21 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface UpdateEmailRequest {
+  email: string;
+}
+
+export interface UpdatePasswordRequest {
+  currentPassword?: string;
+  newPassword: string;
+}
+
+export interface UpdateEmailPreferencesRequest {
+  gameTurnReminders?: boolean;
+  matchUpdates?: boolean;
+  newsletter?: boolean;
 }
 
 export interface AuthResponse {

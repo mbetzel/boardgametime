@@ -1,5 +1,8 @@
 import {
   RegisterRequest,
+  UpdateEmailRequest,
+  UpdatePasswordRequest,
+  EmailPreferencesDTO,
   LoginRequest,
   AuthResponse,
   UserDTO,
@@ -110,6 +113,44 @@ export async function getMe(): Promise<UserDTO> {
   return user;
 }
 
+export async function updateUserEmail(data: UpdateEmailRequest): Promise<UserDTO> {
+  const user = await fetchApi<UserDTO>('/api/auth/email', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  if (user) setStoredUser(user);
+  return user;
+}
+
+export async function updateUserPassword(data: UpdatePasswordRequest): Promise<{ message: string }> {
+  return fetchApi<{ message: string }>('/api/auth/password', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getStoredEmailPreferences(): EmailPreferencesDTO {
+  if (typeof window === 'undefined') {
+    return { gameTurnReminders: true, matchUpdates: true, newsletter: false };
+  }
+  const prefs = localStorage.getItem('bgt_email_preferences');
+  if (!prefs) {
+    return { gameTurnReminders: true, matchUpdates: true, newsletter: false };
+  }
+  try {
+    return JSON.parse(prefs);
+  } catch {
+    return { gameTurnReminders: true, matchUpdates: true, newsletter: false };
+  }
+}
+
+export function saveStoredEmailPreferences(prefs: EmailPreferencesDTO): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('bgt_email_preferences', JSON.stringify(prefs));
+  }
+}
+
+
 // Lobbies API
 export async function listLobbies(): Promise<LobbyDTO[]> {
   return fetchApi<LobbyDTO[]>('/api/lobbies');
@@ -146,7 +187,10 @@ export async function startGame(id: string): Promise<{ matchId: string; match: M
 export const startLobby = startGame;
 
 // Matches API
-export const getUserMatches = async (): Promise<MatchDTO[]> => fetchApi<MatchDTO[]>('/api/matches');
+export const getUserMatches = async (status?: string): Promise<MatchDTO[]> => {
+  const query = status ? `?status=${status}` : '';
+  return fetchApi<MatchDTO[]>(`/api/matches${query}`);
+};
 
 export async function getMatch(id: string): Promise<MatchDTO> {
   return fetchApi<MatchDTO>(`/api/matches/${id}`);

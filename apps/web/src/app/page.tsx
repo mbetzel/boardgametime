@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Header } from '../components/ui/Header';
 import { CreateLobbyModal } from '../components/lobby/CreateLobbyModal';
 import { getStoredUser, removeAuthToken, listLobbies, joinLobby, getUserMatches } from '../lib/api';
 import { getLobbySocket } from '../lib/socket';
@@ -111,98 +112,7 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0f172a' }}>
       {/* Top Header */}
-      <header
-        style={{
-          borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
-          background: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(12px)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          padding: '1rem 2rem',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          {/* Brand Title */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)',
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5Z" fill="#0f172a" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="M5 19H19" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <span
-              style={{
-                fontSize: '1.5rem',
-                fontWeight: 800,
-                color: '#f59e0b',
-                letterSpacing: '-0.02em',
-                textShadow: '0 0 10px rgba(245, 158, 11, 0.2)',
-              }}
-            >
-              Board Game Time
-            </span>
-          </Link>
-
-          {/* User Auth Section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {user ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: 'rgba(245, 158, 11, 0.2)',
-                      border: '1px solid #f59e0b',
-                      color: '#f59e0b',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    {user.username.charAt(0).toUpperCase()}
-                  </span>
-                  <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.95rem' }}>
-                    {user.username}
-                  </span>
-                </div>
-                <Button variant="secondary" size="sm" onClick={handleSignOut}>
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <Link href="/auth/login" passHref style={{ textDecoration: 'none' }}>
-                <Button variant="gold" size="md">
-                  Sign In
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header user={user} onSignOut={handleSignOut} />
 
       {/* Main Content Area */}
       <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>

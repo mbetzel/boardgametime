@@ -11,3 +11,5 @@ out
 .DS_Store
 .vscode/
 .idea/
+*.tsbuildinfo
+

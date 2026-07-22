@@ -38,8 +38,8 @@ function mapMatchToDTO(match: any): MatchDTO {
 }
 
 export async function matchRoutes(fastify: FastifyInstance) {
-  // Get active matches for current user
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  // Get matches for current user
+  fastify.get('/', async (request: FastifyRequest<{ Querystring: { status?: string } }>, reply: FastifyReply) => {
     let auth;
     try {
       auth = getAuthUser(request);
@@ -47,15 +47,22 @@ export async function matchRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
 
-    const matches = await prisma.match.findMany({
-      where: {
-        status: 'IN_PROGRESS',
-        players: {
-          some: {
-            userId: auth.sub,
-          },
+    const { status } = (request.query as { status?: string }) || {};
+
+    const whereClause: any = {
+      players: {
+        some: {
+          userId: auth.sub,
         },
       },
+    };
+
+    if (status && status.toUpperCase() !== 'ALL') {
+      whereClause.status = status.toUpperCase();
+    }
+
+    const matches = await prisma.match.findMany({
+      where: whereClause,
       include: {
         players: {
           include: { user: true },

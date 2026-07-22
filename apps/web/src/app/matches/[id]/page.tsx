@@ -10,6 +10,7 @@ import { PlayerStatusCards } from '../../../components/game/PlayerStatusCards';
 import { TurnHistoryLog } from '../../../components/game/TurnHistoryLog';
 import { ScoringBreakdownModal } from '../../../components/game/ScoringBreakdownModal';
 import { Button } from '../../../components/ui/Button';
+import { Header } from '../../../components/ui/Header';
 import { getMatch, submitAction, getMatchEvents, getStoredUser, removeAuthToken } from '../../../lib/api';
 import { getMatchSocket } from '../../../lib/socket';
 import { MatchDTO, MatchEventDTO, UserDTO } from '@boardgametime/types';
@@ -123,93 +124,7 @@ export default function MatchPage() {
   }, [matchId]);
 
   const renderTopBanner = () => (
-    <header
-      style={{
-        width: '100%',
-        borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
-        background: 'rgba(15, 23, 42, 0.95)',
-        backdropFilter: 'blur(12px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        padding: '0.85rem 1.5rem',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        {/* Brand Title */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)',
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5Z" fill="#0f172a" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M5 19H19" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </div>
-          <span
-            style={{
-              fontSize: '1.4rem',
-              fontWeight: 800,
-              color: '#f59e0b',
-              letterSpacing: '-0.02em',
-              textShadow: '0 0 10px rgba(245, 158, 11, 0.2)',
-            }}
-          >
-            Board Game Time
-          </span>
-        </Link>
-
-        {/* User Auth Section */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {currentUser ? (
-            <>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '20px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                  border: '1px solid rgba(245, 158, 11, 0.4)',
-                  color: '#f59e0b',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
-              >
-                <span>👤 {currentUser.username}</span>
-              </div>
-              <Button variant="secondary" size="sm" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <Link href="/auth/login" passHref style={{ textDecoration: 'none' }}>
-              <Button variant="gold" size="sm">
-                Sign In
-              </Button>
-            </Link>
-          )}
-        </div>
-      </div>
-    </header>
+    <Header user={currentUser} onSignOut={handleSignOut} />
   );
 
   if (loading) {
