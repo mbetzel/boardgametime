@@ -38,46 +38,47 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
       style={{
         backgroundColor: '#1e293b',
         border: '1px solid rgba(245, 158, 11, 0.3)',
-        borderRadius: '12px',
+        borderRadius: '16px',
         padding: '1.25rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.25rem',
+        gap: '1.1rem',
         width: '100%',
-        maxWidth: '560px',
-        margin: '0 auto',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f59e0b', margin: 0 }}>
-          Your Action Controls
+        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          🎮 Action Controls
         </h3>
         <Badge variant={isMyTurn ? 'gold' : 'neutral'}>
-          {isMyTurn ? 'Select Action' : 'Waiting...'}
+          {isMyTurn ? 'Your Action' : 'Waiting...'}
         </Badge>
       </div>
 
-      {/* Castle Tray */}
+      {/* Castle Selection Tray (Ranks 1-4) */}
       <div>
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#cbd5e1', display: 'block', marginBottom: '0.5rem' }}>
-          🏰 Castle Tray (Select rank then click cell):
+        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '0.5rem' }}>
+          🏰 Castle Tray (Select rank then click an empty board cell):
         </span>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {castles.map((c) => {
-            const isSelected = selectedAction?.kind === 'CASTLE' && selectedAction.rank === c.rank;
-            const hasCastles = c.count > 0;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+          {[1, 2, 3, 4].map((rankNum) => {
+            const rank = rankNum as 1 | 2 | 3 | 4;
+            const castleItem = castles.find((c) => c.rank === rank);
+            const count = castleItem ? castleItem.count : 0;
+            const isSelected = selectedAction?.kind === 'CASTLE' && selectedAction.rank === rank;
+            const hasCastles = count > 0;
+
             return (
               <button
-                key={c.rank}
+                key={rank}
                 disabled={!isMyTurn || !hasCastles || isLoading}
                 onClick={() =>
-                  onSelectAction(isSelected ? null : { kind: 'CASTLE', rank: c.rank })
+                  onSelectAction(isSelected ? null : { kind: 'CASTLE', rank })
                 }
                 style={{
-                  flex: 1,
-                  minWidth: '70px',
-                  padding: '0.5rem',
-                  borderRadius: '8px',
+                  padding: '0.6rem 0.4rem',
+                  borderRadius: '10px',
                   backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.3)' : '#0f172a',
                   border: isSelected ? '2px solid #f59e0b' : '1px solid #334155',
                   color: hasCastles ? '#f8fafc' : '#64748b',
@@ -88,11 +89,12 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
                   gap: '0.2rem',
                   transition: 'all 0.15s ease-in-out',
                   opacity: hasCastles ? 1 : 0.4,
+                  boxShadow: isSelected ? '0 0 12px rgba(245, 158, 11, 0.4)' : 'none',
                 }}
               >
-                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Rank {c.rank}</span>
-                <span style={{ fontSize: '0.75rem', color: isSelected ? '#f59e0b' : '#94a3b8' }}>
-                  Left: {c.count}
+                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Rank {rank}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isSelected ? '#f59e0b' : '#94a3b8' }}>
+                  {count} left
                 </span>
               </button>
             );
@@ -100,44 +102,73 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
         </div>
       </div>
 
-      {/* Tile Actions: Draw Pile & Secret Tile */}
+      {/* Tile Action Trays: Draw Tile & Secret Tile */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        {/* Draw Tile Button */}
+        {/* Draw & Place Tile Action */}
         <Button
           variant={selectedAction?.kind === 'DRAW_TILE' ? 'gold' : 'secondary'}
           disabled={!isMyTurn || drawPileCount <= 0 || isLoading}
           onClick={() =>
             onSelectAction(selectedAction?.kind === 'DRAW_TILE' ? null : { kind: 'DRAW_TILE' })
           }
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: '180px' }}
         >
-          📜 Draw & Place Tile ({drawPileCount} left)
+          📜 Draw & Place Tile ({drawPileCount} remaining)
         </Button>
 
-        {/* Secret Tile Button */}
-        {secretTile && (
+        {/* Secret Tile Action */}
+        {secretTile ? (
           <Button
             variant={selectedAction?.kind === 'SECRET_TILE' ? 'gold' : 'secondary'}
             disabled={!isMyTurn || isLoading}
             onClick={() =>
               onSelectAction(selectedAction?.kind === 'SECRET_TILE' ? null : { kind: 'SECRET_TILE' })
             }
-            style={{ flex: 1 }}
+            style={{ flex: 1, minWidth: '180px' }}
           >
             🕵️ Secret Tile ({secretTile.name})
           </Button>
+        ) : (
+          <div
+            style={{
+              flex: 1,
+              minWidth: '180px',
+              padding: '0.6rem',
+              borderRadius: '8px',
+              backgroundColor: '#0f172a',
+              border: '1px dashed #334155',
+              color: '#64748b',
+              fontSize: '0.85rem',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            🕵️ Secret Tile Used
+          </div>
         )}
       </div>
 
-      {/* Pass Turn Button */}
-      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+      {/* Selection Banner & Pass Turn */}
+      <div
+        style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingTop: '0.85rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+        }}
+      >
+        <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
           {selectedAction ? (
             <strong style={{ color: '#f59e0b' }}>
-              Selected: {selectedAction.kind === 'CASTLE' ? `Castle R${selectedAction.rank}` : selectedAction.kind === 'DRAW_TILE' ? 'Draw Tile' : 'Secret Tile'} — Click board cell to place!
+              Selected: {selectedAction.kind === 'CASTLE' ? `Castle Rank ${selectedAction.rank}` : selectedAction.kind === 'DRAW_TILE' ? 'Draw Tile' : 'Secret Tile'} — Click board cell to place!
             </strong>
           ) : (
-            'Choose an action above'
+            'Select an action above to target a cell on the board.'
           )}
         </span>
 

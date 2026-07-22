@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { GameHeader } from '../../../components/game/GameHeader';
 import { BoardGrid } from '../../../components/game/BoardGrid';
 import { PlayerHandControls, SelectedActionType } from '../../../components/game/PlayerHandControls';
+import { PlayerStatusCards } from '../../../components/game/PlayerStatusCards';
+import { TurnHistoryLog } from '../../../components/game/TurnHistoryLog';
 import { ScoringBreakdownModal } from '../../../components/game/ScoringBreakdownModal';
-import { getMatch, submitAction, getStoredUser } from '../../../lib/api';
+import { getMatch, submitAction, getMatchEvents, getStoredUser } from '../../../lib/api';
 import { getMatchSocket } from '../../../lib/socket';
 import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
 import { KingdomsGameState, GameScoringSummary } from '@boardgametime/game-kingdoms';
@@ -17,6 +19,7 @@ export default function MatchPage() {
   const matchId = params?.id as string;
 
   const [match, setMatch] = useState<MatchDTO | null>(null);
+  const [events, setEvents] = useState<MatchEventDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,15 +31,21 @@ export default function MatchPage() {
   const currentUser = getStoredUser();
   const currentUserId = currentUser?.id;
 
-  // Load initial match
+  // Load initial match data & turn history events
   useEffect(() => {
     if (!matchId) return;
 
     const loadMatchData = async () => {
       try {
-        const data = await getMatch(matchId);
-        setMatch(data);
-        const state = data.stateSnapshot as KingdomsGameState;
+        const [matchData, matchEvents] = await Promise.all([
+          getMatch(matchId),
+          getMatchEvents(matchId).catch(() => []),
+        ]);
+
+        setMatch(matchData);
+        setEvents(matchEvents);
+
+        const state = matchData.stateSnapshot as KingdomsGameState;
         if (state?.lastScoringResult) {
           setLastScoring(state.lastScoringResult);
         }
@@ -68,8 +77,13 @@ export default function MatchPage() {
       }
     };
 
-    const handleActionApplied = (_event: MatchEventDTO) => {
-      // Action applied confirmation
+    const handleActionApplied = (event: MatchEventDTO) => {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id || e.sequenceNum === event.sequenceNum)) {
+          return prev;
+        }
+        return [event, ...prev];
+      });
     };
 
     const handleError = (data: { message: string }) => {
@@ -90,26 +104,26 @@ export default function MatchPage() {
 
   if (loading) {
     return (
-      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#94a3b8', fontSize: '1.2rem' }}>Loading match board...</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#090d16' }}>
+        <p style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>Loading match board...</p>
       </main>
     );
   }
 
   if (error || !match) {
     return (
-      <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-        <p style={{ color: '#f87171', fontSize: '1.2rem' }}>{error || 'Match not found'}</p>
+      <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', backgroundColor: '#090d16' }}>
+        <p style={{ color: '#f87171', fontSize: '1.2rem', fontWeight: 700 }}>{error || 'Match not found'}</p>
         <button
           onClick={() => router.push('/lobbies')}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.6rem 1.2rem',
             backgroundColor: '#f59e0b',
             color: '#0f172a',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '8px',
             cursor: 'pointer',
-            fontWeight: 700,
+            fontWeight: 800,
           }}
         >
           Return to Lobbies
@@ -144,6 +158,10 @@ export default function MatchPage() {
       const updated = await submitAction(matchId, { actionType, actionPayload });
       setMatch(updated);
       setSelectedAction(null);
+
+      // Refresh events
+      const updatedEvents = await getMatchEvents(matchId).catch(() => []);
+      if (updatedEvents.length > 0) setEvents(updatedEvents);
     } catch (err: any) {
       setError(err.message || 'Invalid move');
     } finally {
@@ -164,6 +182,10 @@ export default function MatchPage() {
       });
       setMatch(updated);
       setSelectedAction(null);
+
+      // Refresh events
+      const updatedEvents = await getMatchEvents(matchId).catch(() => []);
+      if (updatedEvents.length > 0) setEvents(updatedEvents);
     } catch (err: any) {
       setError(err.message || 'Failed to pass turn');
     } finally {
@@ -179,8 +201,20 @@ export default function MatchPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Header & Scoreboard */}
+    <main
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#090d16',
+        color: '#f8fafc',
+        padding: '1.5rem 1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        maxWidth: '1280px',
+        margin: '0 auto',
+      }}
+    >
+      {/* Header */}
       <GameHeader
         gameState={gameState}
         players={match.players}
@@ -189,32 +223,51 @@ export default function MatchPage() {
       />
 
       {error && (
-        <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
-          {error}
+        <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 600 }}>
+          ⚠️ {error}
         </div>
       )}
 
-      {/* Main Board Grid */}
-      <BoardGrid
-        board={gameState.board}
-        players={gameState.players}
-        isMyTurn={isMyTurn}
-        onCellClick={handleCellClick}
-        selectedActionText={selectedActionText}
-      />
+      {/* Main 2-Column Game Layout (Wireframe Page 5) */}
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
+        {/* Left Section: 5x6 Board Grid & Player Hand Controls */}
+        <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <BoardGrid
+            board={gameState.board}
+            players={gameState.players}
+            isMyTurn={isMyTurn}
+            onCellClick={handleCellClick}
+            selectedActionText={selectedActionText}
+          />
 
-      {/* Player Action Controls */}
-      {!gameState.isComplete && (
-        <PlayerHandControls
-          playerState={myPlayerState}
-          drawPileCount={gameState.drawPile?.length || 0}
-          isMyTurn={isMyTurn}
-          selectedAction={selectedAction}
-          onSelectAction={setSelectedAction}
-          onPass={handlePass}
-          isLoading={actionLoading}
-        />
-      )}
+          {!gameState.isComplete && (
+            <PlayerHandControls
+              playerState={myPlayerState}
+              drawPileCount={gameState.drawPile?.length || 0}
+              isMyTurn={isMyTurn}
+              selectedAction={selectedAction}
+              onSelectAction={setSelectedAction}
+              onPass={handlePass}
+              isLoading={actionLoading}
+            />
+          )}
+        </div>
+
+        {/* Right Sidebar Section: Player Status Cards & Turn History Log */}
+        <div style={{ flex: '1 1 340px', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <PlayerStatusCards
+            gameState={gameState}
+            players={match.players}
+            currentUserId={currentUserId}
+          />
+
+          <TurnHistoryLog
+            events={events}
+            players={match.players}
+            lastScoringResult={lastScoring}
+          />
+        </div>
+      </div>
 
       {/* Epoch Scoring Breakdown Modal */}
       <ScoringBreakdownModal
