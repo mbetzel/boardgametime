@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { GameHeader } from '../../../components/game/GameHeader';
@@ -31,6 +31,8 @@ export default function MatchPage() {
   const [lastScoring, setLastScoring] = useState<GameScoringSummary | null>(null);
   const [currentUser, setCurrentUser] = useState<UserDTO | null>(null);
 
+  const lastSeenScoringEpochRef = useRef<number>(0);
+
   const currentUserId = currentUser?.id;
 
   const handleSignOut = () => {
@@ -38,6 +40,18 @@ export default function MatchPage() {
     setCurrentUser(null);
     router.push('/');
   };
+
+  const updateMatchData = useCallback((updatedMatch: MatchDTO) => {
+    setMatch(updatedMatch);
+    const state = updatedMatch.stateSnapshot as KingdomsGameState;
+    if (state?.lastScoringResult) {
+      setLastScoring(state.lastScoringResult);
+      if (state.lastScoringResult.epoch > lastSeenScoringEpochRef.current) {
+        lastSeenScoringEpochRef.current = state.lastScoringResult.epoch;
+        setScoringModalOpen(true);
+      }
+    }
+  }, []);
 
   // Load initial match data & turn history events
   useEffect(() => {
@@ -58,6 +72,7 @@ export default function MatchPage() {
         const state = matchData.stateSnapshot as KingdomsGameState;
         if (state?.lastScoringResult) {
           setLastScoring(state.lastScoringResult);
+          lastSeenScoringEpochRef.current = state.lastScoringResult.epoch;
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load match');
@@ -78,12 +93,7 @@ export default function MatchPage() {
 
     const handleMatchUpdated = (updatedMatch: MatchDTO) => {
       if (updatedMatch.id === matchId) {
-        setMatch(updatedMatch);
-        const state = updatedMatch.stateSnapshot as KingdomsGameState;
-        if (state?.lastScoringResult) {
-          setLastScoring(state.lastScoringResult);
-          setScoringModalOpen(true);
-        }
+        updateMatchData(updatedMatch);
       }
     };
 
@@ -264,7 +274,7 @@ export default function MatchPage() {
 
     try {
       const updated = await submitAction(matchId, { actionType, actionPayload });
-      setMatch(updated);
+      updateMatchData(updated);
       setSelectedAction(null);
 
       // Refresh events
@@ -288,7 +298,7 @@ export default function MatchPage() {
         actionType: 'PASS',
         actionPayload: {},
       });
-      setMatch(updated);
+      updateMatchData(updated);
       setSelectedAction(null);
 
       // Refresh events
