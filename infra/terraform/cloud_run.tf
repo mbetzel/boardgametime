@@ -13,6 +13,10 @@ resource "google_cloud_run_v2_service" "api_service" {
     containers {
       image = var.api_container_image
 
+      ports {
+        container_port = 3000
+      }
+
       env {
         name  = "NODE_ENV"
         value = "production"
@@ -58,6 +62,10 @@ resource "google_cloud_run_v2_service" "web_service" {
 
     containers {
       image = var.web_container_image
+
+      ports {
+        container_port = 3000
+      }
 
       env {
         name  = "NODE_ENV"
