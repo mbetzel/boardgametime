@@ -3,19 +3,65 @@ import { Server, Socket } from 'socket.io';
 import { prisma } from '@boardgametime/db';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
 import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
+import { verifyToken } from '../services/authService';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
 
 export function initSocketServer(httpServer: HttpServer): Server {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://boardgameti.me',
+    ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : []),
+  ];
+
   const io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        try {
+          const hostname = new URL(origin).hostname;
+          if (
+            hostname === 'boardgameti.me' ||
+            hostname.endsWith('.boardgameti.me') ||
+            hostname.endsWith('.run.app') ||
+            hostname.endsWith('.appspot.com')
+          ) {
+            return callback(null, true);
+          }
+        } catch {
+          // invalid origin format
+        }
+        return callback(new Error('CORS Not Allowed'));
+      },
       methods: ['GET', 'POST'],
     },
   });
 
   ioInstance = io;
+
+  // Socket Authentication Middleware
+  io.use((socket: Socket, next) => {
+    const token =
+      socket.handshake.auth?.token ||
+      (socket.handshake.headers?.authorization
+        ? socket.handshake.headers.authorization.replace('Bearer ', '')
+        : null);
+
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+
+    try {
+      const decoded = verifyToken(token);
+      (socket as any).user = decoded;
+      next();
+    } catch {
+      next(new Error('Invalid token'));
+    }
+  });
 
   // Lobbies Namespace
   const lobbiesNs = io.of('/lobbies');
@@ -40,8 +86,17 @@ export function initSocketServer(httpServer: HttpServer): Server {
       socket.leave(matchId);
     });
 
-    socket.on('game_action', async (data: { matchId: string; actionType: string; actionPayload: unknown; userId?: string }) => {
-      const { matchId, actionType, actionPayload, userId } = data;
+    socket.on('game_action', async (data: { matchId: string; actionType: string; actionPayload: unknown }) => {
+      const { matchId, actionType, actionPayload } = data;
+      const authUser = (socket as any).user;
+
+      if (!authUser || !authUser.sub) {
+        socket.emit('error', { message: 'Unauthorized connection' });
+        return;
+      }
+
+      const actingUserId = authUser.sub;
+
       try {
         const match = await prisma.match.findUnique({
           where: { id: matchId },
@@ -53,9 +108,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
           return;
         }
 
-        const actingUserId = userId || match.currentTurnPlayerId;
-        if (!actingUserId) {
-          socket.emit('error', { message: 'Invalid player for turn' });
+        const isPlayerInMatch = match.players.some((p) => p.userId === actingUserId);
+        if (!isPlayerInMatch) {
+          socket.emit('error', { message: 'Forbidden. Player is not in this match.' });
           return;
         }
 

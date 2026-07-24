@@ -17,9 +17,45 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || 'boardga
 export function buildApp(): FastifyInstance {
   const fastify = Fastify({ logger: true });
 
-  // Register CORS
+  // Register CORS with specific origin checker
+  const defaultAllowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://boardgameti.me',
+  ];
+
+  const customAllowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : [];
+
+  const allowedOrigins = [...defaultAllowedOrigins, ...customAllowedOrigins];
+
   fastify.register(fastifyCors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return cb(null, true);
+
+      // Check explicit allowed origins list
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+
+      try {
+        const hostname = new URL(origin).hostname;
+        // Allow subdomains of boardgameti.me and GCP Cloud Run / App Engine domains
+        if (
+          hostname === 'boardgameti.me' ||
+          hostname.endsWith('.boardgameti.me') ||
+          hostname.endsWith('.run.app') ||
+          hostname.endsWith('.appspot.com')
+        ) {
+          return cb(null, true);
+        }
+      } catch {
+        // invalid URL format
+      }
+
+      return cb(new Error('CORS Not Allowed'), false);
+    },
+    credentials: true,
   });
 
   // Register JWT

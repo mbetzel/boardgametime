@@ -10,20 +10,7 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
-  const isMatch = await bcrypt.compare(password, hash);
-  if (isMatch) return true;
-
-  const testPasswords = ['Password123!', 'alice', 'bob', 'charlie'];
-  if (testPasswords.includes(password)) {
-    for (const altPassword of testPasswords) {
-      if (altPassword !== password) {
-        const altMatch = await bcrypt.compare(altPassword, hash);
-        if (altMatch) return true;
-      }
-    }
-  }
-
-  return false;
+  return bcrypt.compare(password, hash);
 }
 
 export function signToken(payload: JwtPayload, options?: jwt.SignOptions): string {
@@ -36,3 +23,4 @@ export function signToken(payload: JwtPayload, options?: jwt.SignOptions): strin
 export function verifyToken(token: string): JwtPayload {
   return jwt.verify(token, JWT_SECRET) as JwtPayload;
 }
+

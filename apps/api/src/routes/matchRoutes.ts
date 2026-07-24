@@ -78,8 +78,9 @@ export async function matchRoutes(fastify: FastifyInstance) {
 
   // Get match state
   fastify.get('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    let auth;
     try {
-      getAuthUser(request);
+      auth = getAuthUser(request);
     } catch {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
@@ -96,6 +97,11 @@ export async function matchRoutes(fastify: FastifyInstance) {
 
     if (!match) {
       return reply.status(404).send({ message: 'Match not found.' });
+    }
+
+    const isPlayerInMatch = match.players.some((p) => p.userId === auth.sub);
+    if (!isPlayerInMatch) {
+      return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
     }
 
     return reply.send(mapMatchToDTO(match));
@@ -211,13 +217,28 @@ export async function matchRoutes(fastify: FastifyInstance) {
 
   // Get event log
   fastify.get('/:id/events', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    let auth;
     try {
-      getAuthUser(request);
+      auth = getAuthUser(request);
     } catch {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
 
     const { id } = request.params;
+    const match = await prisma.match.findUnique({
+      where: { id },
+      include: { players: true },
+    });
+
+    if (!match) {
+      return reply.status(404).send({ message: 'Match not found.' });
+    }
+
+    const isPlayerInMatch = match.players.some((p) => p.userId === auth.sub);
+    if (!isPlayerInMatch) {
+      return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
+    }
+
     const events = await prisma.matchEvent.findMany({
       where: { matchId: id },
       orderBy: { sequenceNum: 'asc' },

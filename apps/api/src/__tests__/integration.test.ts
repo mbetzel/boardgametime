@@ -366,4 +366,48 @@ describe('API Integration Workflows', () => {
       })
     );
   });
+
+  it('7. Match Access Authorization - non-participant is rejected with 403', async () => {
+    const mockMatch = {
+      id: 'match-private-999',
+      gameId: 'kingdoms',
+      mode: 'REALTIME',
+      status: 'IN_PROGRESS',
+      currentTurnPlayerId: 'usr-charlie-789',
+      stateSnapshot: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      players: [
+        {
+          id: 'mp-99',
+          matchId: 'match-private-999',
+          userId: 'usr-charlie-789',
+          seatIndex: 0,
+          user: { id: 'usr-charlie-789', username: 'charlie', avatarUrl: null },
+        },
+      ],
+    };
+
+    vi.spyOn(prisma.match, 'findUnique').mockResolvedValue(mockMatch as any);
+
+    const stateRes = await app.inject({
+      method: 'GET',
+      url: '/api/matches/match-private-999',
+      headers: {
+        authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    expect(stateRes.statusCode).toBe(403);
+
+    const eventsRes = await app.inject({
+      method: 'GET',
+      url: '/api/matches/match-private-999/events',
+      headers: {
+        authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    expect(eventsRes.statusCode).toBe(403);
+  });
 });
