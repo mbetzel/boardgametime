@@ -1,9 +1,17 @@
 # AGENTS.md — Workspace Guidelines & Execution Policy
 
 ## 1. Runtime Environment (WSL Directive)
-This is a WSL Linux project. All terminal execution commands MUST be routed using the `--cd` option to specify the Linux path directly, preventing Windows network drive (`Z:\`) path translation warnings:
+This is a WSL Linux project. All terminal execution commands and Git operations MUST be routed using the `--cd` option to specify the primary Linux directory (`/home/mike/github/boardgametime`) directly. This prevents Windows network drive path translation warnings (`Z:\`) and avoids WSL worktree `.git` path resolution failures:
 ```bash
 wsl -d Ubuntu --cd /home/mike/github/boardgametime <command>
+```
+
+### Git Command Routing
+All git staging, committing, and pushing commands MUST be run from `/home/mike/github/boardgametime`:
+```bash
+wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c "git status"
+wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c 'git commit -m "type(scope): description"'
+wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c "git push -u origin <branch>"
 ```
 
 ---
@@ -27,6 +35,7 @@ To prevent Windows PowerShell string mangling or quote truncation during file op
 - **User Review Required**: All changes MUST be reviewed and approved by the user before committing or pushing.
 - **Conventional Commits**: All git commits MUST strictly adhere to the **Conventional Commits** specification:
   `<type>(<scope>): <short description>`
+- **Git Subagent Delegation**: Subagent `git_committer` can be invoked for staging, committing, and pushing changes safely from the primary Linux path.
 
 ### Commit Types
 - `feat`: A new feature
