@@ -15,7 +15,14 @@ import {
   MatchEventDTO,
 } from '@boardgametime/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const getRawApiBaseUrl = (): string => {
+  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  if (url.endsWith('/')) url = url.slice(0, -1);
+  if (url.endsWith('/api')) url = url.slice(0, -4);
+  return url;
+};
+
+const API_BASE_URL = getRawApiBaseUrl();
 
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -66,14 +73,24 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   const method = (options.method || 'GET').toUpperCase();
   const body = options.body ?? (['POST', 'PUT', 'PATCH'].includes(method) ? JSON.stringify({}) : undefined);
 
-  const path = endpoint.startsWith('/api/') || endpoint === '/api'
-    ? endpoint
-    : `/api${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith('/api/')
+    ? endpoint.slice(4)
+    : endpoint === '/api'
+    ? ''
+    : endpoint;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const path = cleanEndpoint.startsWith('/') ? cleanEndpoint : `/${cleanEndpoint}`;
+
+  const timeoutSignal = AbortSignal.timeout(15000);
+  const combinedSignal = options.signal
+    ? AbortSignal.any([options.signal, timeoutSignal])
+    : timeoutSignal;
+
+  const response = await fetch(`${API_BASE_URL}/api${path}`, {
     ...options,
     headers,
     body,
+    signal: combinedSignal,
   });
 
   const data = await response.json().catch(() => ({}));

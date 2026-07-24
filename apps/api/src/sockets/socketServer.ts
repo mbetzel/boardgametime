@@ -34,7 +34,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         } catch {
           // invalid origin format
         }
-        return callback(new Error('CORS Not Allowed'));
+        return callback(null, false);
       },
       methods: ['GET', 'POST'],
     },

@@ -53,7 +53,7 @@ export function buildApp(): FastifyInstance {
         // invalid URL format
       }
 
-      return cb(new Error('CORS Not Allowed'), false);
+      return cb(null, false);
     },
     credentials: true,
   });

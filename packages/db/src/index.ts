@@ -12,7 +12,12 @@ let prismaInstance: PrismaClient | null = null;
 
 export function getPrismaClient(): PrismaClient {
   if (!prismaInstance) {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
     const adapter = new PrismaPg(pool);
     prismaInstance = new PrismaClient({ adapter });
   }
