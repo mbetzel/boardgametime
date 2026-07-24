@@ -2,6 +2,7 @@ import {
   RegisterRequest,
   UpdateEmailRequest,
   UpdatePasswordRequest,
+  UpdateEmailPreferencesRequest,
   EmailPreferencesDTO,
   LoginRequest,
   AuthResponse,
@@ -165,6 +166,15 @@ export function saveStoredEmailPreferences(prefs: EmailPreferencesDTO): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('bgt_email_preferences', JSON.stringify(prefs));
   }
+}
+
+export async function updateUserPreferences(data: UpdateEmailPreferencesRequest): Promise<EmailPreferencesDTO> {
+  const prefs = await fetchApi<EmailPreferencesDTO>('/api/auth/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  saveStoredEmailPreferences(prefs);
+  return prefs;
 }
 
 

@@ -15,6 +15,7 @@ import {
   updateUserPassword,
   getStoredEmailPreferences,
   saveStoredEmailPreferences,
+  updateUserPreferences,
   removeAuthToken,
   getMe,
 } from '../../lib/api';
@@ -169,13 +170,19 @@ export default function SettingsPage() {
     }
   };
 
-  const handleTogglePreference = (key: keyof EmailPreferencesDTO) => {
+  const handleTogglePreference = async (key: keyof EmailPreferencesDTO) => {
     const updated = {
       ...preferences,
       [key]: !preferences[key],
     };
     setPreferences(updated);
     saveStoredEmailPreferences(updated);
+
+    try {
+      await updateUserPreferences({ [key]: updated[key] });
+    } catch (err) {
+      console.warn('Backend preferences save error, saved locally:', err);
+    }
 
     const labels: Record<keyof EmailPreferencesDTO, string> = {
       gameTurnReminders: 'Game Turn Reminders',
@@ -184,7 +191,7 @@ export default function SettingsPage() {
     };
 
     setPrefNotification(
-      `Preferences saved: '${labels[key]}' set to ${updated[key] ? 'Enabled' : 'Disabled'}. (Coming Soon: Email notification delivery service)`
+      `Preferences saved: '${labels[key]}' set to ${updated[key] ? 'Enabled' : 'Disabled'}.`
     );
 
     setTimeout(() => {

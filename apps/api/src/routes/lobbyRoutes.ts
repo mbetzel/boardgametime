@@ -12,6 +12,7 @@ import {
 import { KingdomsGameEngine } from '@boardgametime/game-kingdoms';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
+import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 const kingdomsEngine = new KingdomsGameEngine();
 
@@ -303,6 +304,12 @@ export async function lobbyRoutes(fastify: FastifyInstance) {
     if (io) {
       io.of('/lobbies').to(id).emit('lobby_updated', lobbyDto);
       io.of('/lobbies').to(id).emit('match_started', { matchId: match.id });
+    }
+
+    if (match.currentTurnPlayerId && match.currentTurnPlayerId !== auth.sub) {
+      notifyNextPlayerIfInactive(match.id, match.currentTurnPlayerId).catch((err) => {
+        console.error('[LobbyRoutes] Turn email notification error:', err);
+      });
     }
 
     return reply.send({
