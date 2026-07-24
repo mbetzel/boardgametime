@@ -10,6 +10,7 @@ export interface UserDTO {
   username: string;
   email: string;
   avatarUrl?: string | null;
+  gameTurnReminders?: boolean;
   createdAt?: string;
   updatedAt?: string;
   authProvider?: 'credentials' | 'google' | 'oauth' | string;

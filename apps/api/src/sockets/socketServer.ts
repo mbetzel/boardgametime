@@ -4,6 +4,8 @@ import { prisma } from '@boardgametime/db';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
 import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
 import { verifyToken } from '../services/authService';
+import { presenceManager } from '../services/presenceManager';
+import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
@@ -78,24 +80,41 @@ export function initSocketServer(httpServer: HttpServer): Server {
   // Matches Namespace
   const matchesNs = io.of('/matches');
   matchesNs.on('connection', (socket: Socket) => {
+    const authUser = (socket as any).user;
+    const userId = authUser?.sub;
+
+    if (userId) {
+      presenceManager.registerSocket(userId, socket.id);
+    }
+
     socket.on('join_match', (matchId: string) => {
       socket.join(matchId);
+      if (userId) {
+        presenceManager.joinMatchRoom(userId, matchId, socket.id);
+      }
     });
 
     socket.on('leave_match', (matchId: string) => {
       socket.leave(matchId);
+      if (userId) {
+        presenceManager.leaveMatchRoom(userId, matchId, socket.id);
+      }
+    });
+
+    socket.on('disconnect', () => {
+      if (userId) {
+        presenceManager.unregisterSocket(userId, socket.id);
+      }
     });
 
     socket.on('game_action', async (data: { matchId: string; actionType: string; actionPayload: unknown }) => {
       const { matchId, actionType, actionPayload } = data;
-      const authUser = (socket as any).user;
-
-      if (!authUser || !authUser.sub) {
+      if (!userId) {
         socket.emit('error', { message: 'Unauthorized connection' });
         return;
       }
 
-      const actingUserId = authUser.sub;
+      const actingUserId = userId;
 
       try {
         const match = await prisma.match.findUnique({
@@ -180,6 +199,13 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         matchesNs.to(matchId).emit('action_applied', matchEventDto);
         matchesNs.to(matchId).emit('match_updated', matchDto);
+
+        // Trigger email notification check for inactive turn player
+        if (updatedMatch.currentTurnPlayerId && updatedMatch.currentTurnPlayerId !== actingUserId) {
+          notifyNextPlayerIfInactive(matchId, updatedMatch.currentTurnPlayerId).catch((err) => {
+            console.error('[SocketServer] Turn email notification error:', err);
+          });
+        }
       } catch (err: any) {
         socket.emit('error', { message: err.message || 'Error processing action' });
       }
