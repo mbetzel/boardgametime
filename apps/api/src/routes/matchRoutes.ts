@@ -4,6 +4,7 @@ import { SubmitActionRequest, MatchDTO, MatchEventDTO, PlayMode, MatchStatus } f
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
+import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 const kingdomsEngine = new KingdomsGameEngine();
 
@@ -210,6 +211,12 @@ export async function matchRoutes(fastify: FastifyInstance) {
     if (io) {
       io.of('/matches').to(id).emit('action_applied', eventDto);
       io.of('/matches').to(id).emit('match_updated', matchDto);
+    }
+
+    if (updatedMatch.currentTurnPlayerId && updatedMatch.currentTurnPlayerId !== auth.sub) {
+      notifyNextPlayerIfInactive(id, updatedMatch.currentTurnPlayerId).catch((err) => {
+        console.error('[MatchRoutes] Turn email notification error:', err);
+      });
     }
 
     return reply.send(matchDto);
