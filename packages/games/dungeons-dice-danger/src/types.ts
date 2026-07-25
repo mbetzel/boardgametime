@@ -13,6 +13,10 @@ export interface MapCell {
   value?: number; // target dice sum (2-12)
   row: number;
   col: number;
+  x?: number; // percentage left (0-100)
+  y?: number; // percentage top (0-100)
+  w?: number; // percentage width
+  h?: number; // percentage height
   connectedCellIds: string[];
   chestReward?: ChestReward;
   monsterId?: string;

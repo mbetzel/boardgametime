@@ -30,6 +30,15 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
 
   const mapImageUrl = mapImageUrls[mapDef.id] || '/images/maps/annoyed-animals.jpg';
 
+  // Calculate percentage steps for overlay grid
+  const gridLeftMargin = 3.2; // %
+  const gridTopMargin = 3.5; // %
+  const gridWidthSpan = 79.5; // %
+  const gridHeightSpan = 81.5; // %
+
+  const colStep = gridWidthSpan / (maxCol + 1);
+  const rowStep = gridHeightSpan / (maxRow + 1);
+
   return (
     <div
       style={{
@@ -105,76 +114,71 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
               height: 'auto',
               display: 'block',
               borderRadius: '10px',
-              opacity: 0.92,
+              opacity: 0.95,
             }}
           />
 
-          {/* Interactive Cell Overlay over Map Image */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '3.5%',
-              top: '3.5%',
-              width: '79%',
-              height: '82%',
-              display: 'grid',
-              gridTemplateRows: `repeat(${maxRow + 1}, 1fr)`,
-              gridTemplateColumns: `repeat(${maxCol + 1}, 1fr)`,
-              gap: '2px',
-            }}
-          >
-            {cellsList.map((cell) => {
-              const isVisited = playerState.visitedCellIds.includes(cell.id);
-              const isSelected = selectedCellId === cell.id;
+          {/* Absolute Positioned Clickable Cell Overlays */}
+          {cellsList.map((cell) => {
+            const isVisited = playerState.visitedCellIds.includes(cell.id);
+            const isSelected = selectedCellId === cell.id;
 
-              return (
-                <button
-                  key={cell.id}
-                  type="button"
-                  disabled={disabled || isVisited}
-                  onClick={() => onSelectCell && onSelectCell(cell.id)}
-                  style={{
-                    gridRowStart: cell.row + 1,
-                    gridColumnStart: cell.col + 1,
-                    backgroundColor: isVisited
-                      ? 'rgba(16, 185, 129, 0.65)'
-                      : isSelected
-                      ? 'rgba(251, 191, 36, 0.65)'
-                      : 'transparent',
-                    border: isSelected
-                      ? '2px solid #fbbf24'
-                      : isVisited
-                      ? '2px solid #10b981'
-                      : '1px stroke rgba(255, 255, 255, 0.2)',
-                    borderRadius: '6px',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: !isVisited && !disabled ? 'pointer' : 'default',
-                    transition: 'all 0.15s ease-in-out',
-                    backdropFilter: isVisited || isSelected ? 'blur(2px)' : 'none',
-                    boxShadow: isSelected ? '0 0 12px rgba(251, 191, 36, 0.9)' : 'none',
-                  }}
-                  title={`${cell.label || cell.type} (Row ${cell.row}, Col ${cell.col})`}
-                >
-                  {isVisited && (
-                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>
-                      ✓
-                    </span>
-                  )}
-                  {isSelected && !isVisited && (
-                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#0f172a' }}>
-                      🎯
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+            // Determine percentage coordinates
+            const posX = cell.x !== undefined ? cell.x : gridLeftMargin + cell.col * colStep;
+            const posY = cell.y !== undefined ? cell.y : gridTopMargin + cell.row * rowStep;
+            const widthPct = cell.w !== undefined ? cell.w : colStep * 0.92;
+            const heightPct = cell.h !== undefined ? cell.h : rowStep * 0.92;
+
+            return (
+              <button
+                key={cell.id}
+                type="button"
+                disabled={disabled || isVisited}
+                onClick={() => onSelectCell && onSelectCell(cell.id)}
+                style={{
+                  position: 'absolute',
+                  left: `${posX}%`,
+                  top: `${posY}%`,
+                  width: `${widthPct}%`,
+                  height: `${heightPct}%`,
+                  backgroundColor: isVisited
+                    ? 'rgba(16, 185, 129, 0.7)'
+                    : isSelected
+                    ? 'rgba(251, 191, 36, 0.75)'
+                    : 'rgba(255, 255, 255, 0.08)',
+                  border: isSelected
+                    ? '2.5px solid #fbbf24'
+                    : isVisited
+                    ? '2px solid #10b981'
+                    : '1.5px solid rgba(0, 0, 0, 0.4)',
+                  borderRadius: '6px',
+                  padding: '1px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: !isVisited && !disabled ? 'pointer' : 'default',
+                  transition: 'all 0.15s ease-in-out',
+                  boxShadow: isSelected ? '0 0 15px rgba(251, 191, 36, 0.95)' : 'none',
+                  zIndex: 10,
+                }}
+                title={`${cell.label || cell.type} (Row ${cell.row}, Col ${cell.col})`}
+              >
+                {isVisited && (
+                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.9))' }}>
+                    ✓
+                  </span>
+                )}
+                {isSelected && !isVisited && (
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>
+                    🎯
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : (
-        /* Styled Grid Fallback View */
+        /* Styled Grid View */
         <div style={{ overflowX: 'auto', width: '100%', padding: '0.5rem 0' }}>
           <div
             style={{
