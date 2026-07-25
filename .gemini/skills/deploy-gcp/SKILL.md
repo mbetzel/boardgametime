@@ -40,7 +40,7 @@ wsl -d Ubuntu --cd /home/mike/github/boardgametime /usr/bin/env PATH=/home/mike/
 
 #### Next.js Web Frontend Service
 ```bash
-wsl -d Ubuntu --cd /home/mike/github/boardgametime /usr/bin/env PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:/usr/local/bin:/usr/bin:/bin:$PATH docker build -t us-central1-docker.pkg.dev/boardgametime-app/boardgametime-repo/web:latest --build-arg NEXT_PUBLIC_API_URL=https://boardgameti.me -f apps/web/Dockerfile .
+wsl -d Ubuntu --cd /home/mike/github/boardgametime /usr/bin/env PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:/usr/local/bin:/usr/bin:/bin:$PATH docker build -t us-central1-docker.pkg.dev/boardgametime-app/boardgametime-repo/web:latest --build-arg NEXT_PUBLIC_API_URL=https://boardgametime-api-zpz7lmz2ea-uc.a.run.app -f apps/web/Dockerfile .
 
 wsl -d Ubuntu --cd /home/mike/github/boardgametime /usr/bin/env PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:/usr/local/bin:/usr/bin:/bin:$PATH docker push us-central1-docker.pkg.dev/boardgametime-app/boardgametime-repo/web:latest
 ```
@@ -76,3 +76,13 @@ Verify Cloud Run service URLs and health checks:
    wsl -d Ubuntu --cd /home/mike/github/boardgametime /usr/bin/env PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:/usr/local/bin:/usr/bin:/bin:$PATH curl -I -s https://boardgametime-web-841295688410.us-central1.run.app
    ```
    *Expected Output*: `HTTP/2 200`
+
+---
+
+## 4. Environment Variable & gcloud Safety Directives
+
+- **Non-Destructive Env Updates**: When updating specific environment variables on a Cloud Run service using `gcloud`, ALWAYS use `--update-env-vars` instead of `--set-env-vars`. Using `--set-env-vars` wipes all unspecified variables (such as `DATABASE_URL`).
+  ```bash
+  gcloud run services update boardgametime-api --update-env-vars="RESEND_API_KEY=re_123..." --project=boardgametime-app --region=us-central1
+  ```
+
