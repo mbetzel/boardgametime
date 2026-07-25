@@ -204,15 +204,15 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
             const isHoveredPath = hoveredCellId === edge.fromId || hoveredCellId === edge.toId;
             const isSelectedPath = selectedCellId === edge.fromId || selectedCellId === edge.toId;
 
-            let strokeColor = 'rgba(148, 163, 184, 0.25)';
-            let strokeWidth = '0.4';
+            let strokeColor = 'rgba(148, 163, 184, 0.35)';
+            let strokeWidth = '0.35';
 
             if (isVisitedPath) {
               strokeColor = '#10b981';
-              strokeWidth = '0.7';
+              strokeWidth = '0.65';
             } else if (isHoveredPath || isSelectedPath) {
               strokeColor = '#fbbf24';
-              strokeWidth = '0.7';
+              strokeWidth = '0.65';
             }
 
             return (
@@ -246,31 +246,31 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
             let borderColor = '#475569';
             let textColor = '#f8fafc';
             let subIcon = '';
-            let boxShadow = '0 4px 10px rgba(0, 0, 0, 0.6)';
+            let boxShadow = '0 3px 8px rgba(0, 0, 0, 0.7)';
 
             if (cell.type === 'START') {
               background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
               borderColor = '#34d399';
               textColor = '#ffffff';
-              boxShadow = '0 4px 14px rgba(16, 185, 129, 0.35)';
+              boxShadow = '0 3px 12px rgba(16, 185, 129, 0.4)';
             } else if (cell.type === 'GRAY_ACTIVATION') {
               background = 'linear-gradient(135deg, #334155 0%, #1e293b 100%)';
               borderColor = '#94a3b8';
               textColor = '#f3f4f6';
               subIcon = '⭐';
-              boxShadow = '0 4px 12px rgba(148, 163, 184, 0.25)';
+              boxShadow = '0 3px 10px rgba(148, 163, 184, 0.3)';
             } else if (cell.type === 'CHEST') {
               background = 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)';
               borderColor = '#fde68a';
               textColor = '#ffffff';
               subIcon = '📦';
-              boxShadow = '0 4px 16px rgba(245, 158, 11, 0.4)';
+              boxShadow = '0 3px 14px rgba(245, 158, 11, 0.45)';
             } else if (cell.type === 'MONSTER') {
               background = 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)';
               borderColor = '#fca5a5';
               textColor = '#ffffff';
               subIcon = '⚔️';
-              boxShadow = '0 4px 16px rgba(239, 68, 68, 0.45)';
+              boxShadow = '0 3px 14px rgba(239, 68, 68, 0.5)';
             }
 
             if (isVisited) {
@@ -282,10 +282,10 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
 
             if (isSelected) {
               borderColor = '#fbbf24';
-              boxShadow = '0 0 22px rgba(251, 191, 36, 1), inset 0 0 10px rgba(251, 191, 36, 0.4)';
+              boxShadow = '0 0 20px rgba(251, 191, 36, 1), inset 0 0 8px rgba(251, 191, 36, 0.4)';
             } else if (isHovered && !isVisited) {
               borderColor = '#fde68a';
-              boxShadow = '0 0 18px rgba(251, 191, 36, 0.75)';
+              boxShadow = '0 0 16px rgba(251, 191, 36, 0.8)';
             }
 
             return (
@@ -300,10 +300,10 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                   position: 'absolute',
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,
-                  transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.18)' : 'scale(1)'}`,
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '8px', // Square tile design as requested by user
+                  transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.2)' : 'scale(1)'}`,
+                  width: '36px',  // Optimized square tile dimensions to eliminate crowding
+                  height: '36px',
+                  borderRadius: '7px',
                   background: background,
                   border: isSelected ? '2.5px solid #fbbf24' : `2px solid ${borderColor}`,
                   boxShadow: boxShadow,
@@ -321,14 +321,14 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                 title={`${cell.label || cell.type} (Target Sum: ${cell.value ?? '—'})`}
               >
                 {isVisited ? (
-                  <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>✓</span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>✓</span>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', pointerEvents: 'none' }}>
-                    <span style={{ fontSize: subIcon ? '0.9rem' : '1.1rem', fontWeight: 900, fontFamily: "'Inter', monospace, sans-serif", color: textColor, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
+                    <span style={{ fontSize: subIcon ? '0.8rem' : '0.95rem', fontWeight: 900, fontFamily: "'Inter', monospace, sans-serif", color: textColor, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
                       {cell.value ?? (cell.type === 'START' ? 'S' : '—')}
                     </span>
                     {subIcon && (
-                      <span style={{ fontSize: '0.55rem', lineHeight: 1, marginTop: '2px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}>
+                      <span style={{ fontSize: '0.5rem', lineHeight: 1, marginTop: '1px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}>
                         {subIcon}
                       </span>
                     )}
