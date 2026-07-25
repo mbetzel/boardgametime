@@ -58,7 +58,12 @@ export async function notifyNextPlayerIfInactive(
   const opponent = match.players.find((p) => p.userId !== targetUserId);
   const opponentUsername = opponent?.user?.username || undefined;
 
-  const gameTitle = match.gameId === 'kingdoms' ? 'Kingdoms' : match.gameId;
+  const gameTitle =
+    match.gameId === 'kingdoms'
+      ? 'Kingdoms'
+      : match.gameId === 'dungeons-dice-danger'
+        ? 'Dungeons, Dice & Danger'
+        : match.gameId;
 
   // 6. Send Email
   const result = await sendTurnEmail({

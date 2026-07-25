@@ -52,7 +52,7 @@ export default function CreateLobbyPage() {
         mode: playMode,
         visibility,
         maxPlayers,
-        minPlayers: 2,
+        minPlayers: selectedGame === 'dungeons-dice-danger' ? 1 : 2,
       });
 
       router.push(`/lobbies/${lobby.id}`);
@@ -167,6 +167,7 @@ export default function CreateLobbyPage() {
                 }}
               >
                 <option value="kingdoms">Kingdoms (2-4 Players)</option>
+                <option value="dungeons-dice-danger">Dungeons, Dice & Danger (1-4 Players)</option>
                 <option value="catan" disabled>
                   Catan (3-4 Players) - Coming Soon
                 </option>
@@ -183,8 +184,8 @@ export default function CreateLobbyPage() {
               >
                 Max Players
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                {[2, 3, 4].map((count) => {
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${selectedGame === 'dungeons-dice-danger' ? 4 : 3}, 1fr)`, gap: '0.75rem' }}>
+                {(selectedGame === 'dungeons-dice-danger' ? [1, 2, 3, 4] : [2, 3, 4]).map((count) => {
                   const isSelected = maxPlayers === count;
                   return (
                     <button

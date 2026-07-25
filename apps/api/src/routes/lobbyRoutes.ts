@@ -10,11 +10,13 @@ import {
   LobbyStatus,
 } from '@boardgametime/types';
 import { KingdomsGameEngine } from '@boardgametime/game-kingdoms';
+import { DungeonsDiceDangerGameEngine } from '@boardgametime/game-dungeons-dice-danger';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 const kingdomsEngine = new KingdomsGameEngine();
+const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
 
 function getAuthUser(request: FastifyRequest) {
   const authHeader = request.headers.authorization;
@@ -265,6 +267,8 @@ export async function lobbyRoutes(fastify: FastifyInstance) {
 
     if (lobby.gameId === 'kingdoms') {
       initialState = kingdomsEngine.createInitialState(playerIds);
+    } else if (lobby.gameId === 'dungeons-dice-danger') {
+      initialState = dungeonsDiceDangerEngine.createInitialState(playerIds);
     } else {
       initialState = { playerIds, turnOrder: playerIds, activePlayerId: playerIds[0] };
     }
