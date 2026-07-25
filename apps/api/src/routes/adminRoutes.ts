@@ -102,4 +102,153 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
     return reply.send(stats);
   });
+
+  // GET /api/admin/users - List users with online status
+  fastify.get('/users', async (request: FastifyRequest<{ Querystring: { online?: string } }>, reply: FastifyReply) => {
+    const adminUser = await verifyAdminRole(request, reply);
+    if (!adminUser) return;
+
+    const { online } = request.query || {};
+    const onlineOnly = online === 'true' || online === '1';
+
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        gameTurnReminders: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const userDetails = users
+      .map((u) => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role: (u.role as any) || 'USER',
+        avatarUrl: u.avatarUrl,
+        isOnline: presenceManager.isUserConnected(u.id),
+        gameTurnReminders: u.gameTurnReminders,
+        createdAt: u.createdAt.toISOString(),
+        updatedAt: u.updatedAt.toISOString(),
+      }))
+      .filter((u) => (!onlineOnly || u.isOnline));
+
+    return reply.send(userDetails);
+  });
+
+  // GET /api/admin/matches - Detailed list of matches
+  fastify.get('/matches', async (request: FastifyRequest<{ Querystring: { status?: string } }>, reply: FastifyReply) => {
+    const adminUser = await verifyAdminRole(request, reply);
+    if (!adminUser) return;
+
+    const { status } = request.query || {};
+    const whereCondition = status ? { status } : {};
+
+    const matches = await prisma.match.findMany({
+      where: whereCondition,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        players: {
+          include: {
+            user: {
+              select: { username: true, avatarUrl: true },
+            },
+          },
+          orderBy: { seatIndex: 'asc' },
+        },
+      },
+    });
+
+    const matchDetails = matches.map((m) => ({
+      id: m.id,
+      gameId: m.gameId,
+      mode: m.mode as any,
+      status: m.status as any,
+      currentTurnPlayerId: m.currentTurnPlayerId,
+      players: m.players.map((p) => ({
+        userId: p.userId,
+        username: p.user.username,
+        seatIndex: p.seatIndex,
+        avatarUrl: p.user.avatarUrl,
+      })),
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    }));
+
+    return reply.send(matchDetails);
+  });
+
+  // GET /api/admin/lobbies - Detailed list of lobbies
+  fastify.get('/lobbies', async (request: FastifyRequest<{ Querystring: { status?: string } }>, reply: FastifyReply) => {
+    const adminUser = await verifyAdminRole(request, reply);
+    if (!adminUser) return;
+
+    const { status } = request.query || {};
+    const whereCondition = status ? { status } : {};
+
+    const lobbies = await prisma.lobby.findMany({
+      where: whereCondition,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        host: {
+          select: { username: true },
+        },
+        _count: {
+          select: { players: true },
+        },
+      },
+    });
+
+    const lobbyDetails = lobbies.map((l) => ({
+      id: l.id,
+      code: l.code,
+      gameId: l.gameId,
+      mode: l.mode as any,
+      visibility: l.visibility as any,
+      status: l.status as any,
+      hostId: l.hostId,
+      hostUsername: l.host.username,
+      playersCount: l._count.players,
+      maxPlayers: l.maxPlayers,
+      minPlayers: l.minPlayers,
+      createdAt: l.createdAt.toISOString(),
+    }));
+
+    return reply.send(lobbyDetails);
+  });
+
+  // GET /api/admin/events - Recent game action logs
+  fastify.get('/events', async (request: FastifyRequest, reply: FastifyReply) => {
+    const adminUser = await verifyAdminRole(request, reply);
+    if (!adminUser) return;
+
+    const events = await prisma.matchEvent.findMany({
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        player: {
+          select: { username: true },
+        },
+      },
+    });
+
+    const eventDetails = events.map((e) => ({
+      id: typeof e.id === 'bigint' ? e.id.toString() : e.id,
+      matchId: e.matchId,
+      sequenceNum: e.sequenceNum,
+      playerId: e.playerId,
+      playerUsername: e.player.username,
+      actionType: e.actionType,
+      actionPayload: e.actionPayload,
+      createdAt: e.createdAt.toISOString(),
+    }));
+
+    return reply.send(eventDetails);
+  });
 }

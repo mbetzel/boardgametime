@@ -87,6 +87,60 @@ export interface AdminStatsDTO {
   systemHealth: SystemHealthDTO;
 }
 
+export interface AdminUserDetailDTO {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  avatarUrl?: string | null;
+  isOnline: boolean;
+  gameTurnReminders: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminMatchDetailDTO {
+  id: string;
+  gameId: string;
+  mode: PlayMode;
+  status: MatchStatus;
+  currentTurnPlayerId: string | null;
+  players: {
+    userId: string;
+    username: string;
+    seatIndex: number;
+    avatarUrl?: string | null;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminLobbyDetailDTO {
+  id: string;
+  code: string;
+  gameId: string;
+  mode: PlayMode;
+  visibility: LobbyVisibility;
+  status: LobbyStatus;
+  hostId: string;
+  hostUsername: string;
+  playersCount: number;
+  maxPlayers: number;
+  minPlayers: number;
+  createdAt: string;
+}
+
+export interface AdminEventDetailDTO {
+  id: string | number;
+  matchId: string;
+  sequenceNum: number;
+  playerId: string;
+  playerUsername?: string;
+  actionType: string;
+  actionPayload: unknown;
+  createdAt: string;
+}
+
 // Lobby DTOs & Payloads
 export type PlayMode = 'REALTIME' | 'ASYNC';
 export type LobbyVisibility = 'PUBLIC' | 'PRIVATE';

@@ -1,23 +1,49 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { AdminStatsDTO, UserDTO } from '@boardgametime/types';
-import { getAdminStats, getStoredUser } from '../../lib/api';
+import {
+  AdminStatsDTO,
+  UserDTO,
+  AdminUserDetailDTO,
+  AdminMatchDetailDTO,
+  AdminLobbyDetailDTO,
+  AdminEventDetailDTO,
+} from '@boardgametime/types';
+import {
+  getAdminStats,
+  getStoredUser,
+  getAdminUsers,
+  getAdminMatches,
+  getAdminLobbies,
+  getAdminEvents,
+} from '../../lib/api';
 import { Header } from '../../components/ui/Header';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
+type DetailTab = 'users' | 'active_matches' | 'completed_matches' | 'lobbies' | 'events';
+
 export default function AdminDashboardPage() {
-  const router = useRouter();
   const [user, setUser] = useState<UserDTO | null>(null);
   const [stats, setStats] = useState<AdminStatsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<number>(10); // in seconds, 0 = off
+  const [refreshInterval, setRefreshInterval] = useState<number>(10);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Drill-down Modal state
+  const [activeTab, setActiveTab] = useState<DetailTab | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Drill-down datasets
+  const [usersList, setUsersList] = useState<AdminUserDetailDTO[]>([]);
+  const [matchesList, setMatchesList] = useState<AdminMatchDetailDTO[]>([]);
+  const [lobbiesList, setLobbiesList] = useState<AdminLobbyDetailDTO[]>([]);
+  const [eventsList, setEventsList] = useState<AdminEventDetailDTO[]>([]);
 
   useEffect(() => {
     const currentUser = getStoredUser();
@@ -56,6 +82,37 @@ export default function AdminDashboardPage() {
     return () => clearInterval(intervalId);
   }, [user, refreshInterval, fetchStats]);
 
+  // Load drill-down detail data when tab changes
+  const loadDetailTab = useCallback(async (tab: DetailTab) => {
+    setActiveTab(tab);
+    setDetailLoading(true);
+    setDetailError(null);
+    setSearchQuery('');
+
+    try {
+      if (tab === 'users') {
+        const data = await getAdminUsers();
+        setUsersList(data);
+      } else if (tab === 'active_matches') {
+        const data = await getAdminMatches('IN_PROGRESS');
+        setMatchesList(data);
+      } else if (tab === 'completed_matches') {
+        const data = await getAdminMatches('COMPLETED');
+        setMatchesList(data);
+      } else if (tab === 'lobbies') {
+        const data = await getAdminLobbies();
+        setLobbiesList(data);
+      } else if (tab === 'events') {
+        const data = await getAdminEvents();
+        setEventsList(data);
+      }
+    } catch (err: any) {
+      setDetailError(err?.message || 'Failed to load details.');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / (3600 * 24));
     const hours = Math.floor((seconds % (3600 * 24)) / 3600);
@@ -68,6 +125,45 @@ export default function AdminDashboardPage() {
     parts.push(`${secs}s`);
     return parts.join(' ');
   };
+
+  // Filtered detail lists
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return usersList;
+    const q = searchQuery.toLowerCase();
+    return usersList.filter(
+      (u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.id.toLowerCase().includes(q)
+    );
+  }, [usersList, searchQuery]);
+
+  const filteredMatches = useMemo(() => {
+    if (!searchQuery) return matchesList;
+    const q = searchQuery.toLowerCase();
+    return matchesList.filter(
+      (m) =>
+        m.id.toLowerCase().includes(q) ||
+        m.gameId.toLowerCase().includes(q) ||
+        m.players.some((p) => p.username.toLowerCase().includes(q))
+    );
+  }, [matchesList, searchQuery]);
+
+  const filteredLobbies = useMemo(() => {
+    if (!searchQuery) return lobbiesList;
+    const q = searchQuery.toLowerCase();
+    return lobbiesList.filter(
+      (l) => l.code.toLowerCase().includes(q) || l.hostUsername.toLowerCase().includes(q) || l.id.toLowerCase().includes(q)
+    );
+  }, [lobbiesList, searchQuery]);
+
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery) return eventsList;
+    const q = searchQuery.toLowerCase();
+    return eventsList.filter(
+      (e) =>
+        e.actionType.toLowerCase().includes(q) ||
+        (e.playerUsername && e.playerUsername.toLowerCase().includes(q)) ||
+        e.matchId.toLowerCase().includes(q)
+    );
+  }, [eventsList, searchQuery]);
 
   // Auth / Role Guard check
   if (!loading && (!user || user.role !== 'ADMIN')) {
@@ -354,9 +450,14 @@ export default function AdminDashboardPage() {
 
             {/* Key Metrics Grid */}
             <div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc', marginBottom: '1rem' }}>
-                Platform Telemetry & Usage Statistics
-              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc' }}>
+                  Platform Telemetry & Usage Statistics
+                </h2>
+                <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: 500 }}>
+                  💡 Click any panel to inspect details
+                </span>
+              </div>
 
               <div
                 style={{
@@ -365,15 +466,16 @@ export default function AdminDashboardPage() {
                   gap: '1.25rem',
                 }}
               >
-                {/* Active Games */}
+                {/* Active Games Card */}
                 <Card
+                  onClick={() => loadDetailTab('active_matches')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(245, 158, 11, 0.3)',
                     borderRadius: '0.85rem',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -382,7 +484,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f59e0b', margin: '0.3rem 0 0' }}>
                         {stats.activeGames}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Matches in progress right now</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        View live games →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(245, 158, 11, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
@@ -392,13 +496,16 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
 
-                {/* Completed Games */}
+                {/* Completed Games Card */}
                 <Card
+                  onClick={() => loadDetailTab('completed_matches')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(16, 185, 129, 0.3)',
                     borderRadius: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -407,7 +514,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981', margin: '0.3rem 0 0' }}>
                         {stats.completedGames}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Finished matches</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        View completed history →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
@@ -418,13 +527,16 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
 
-                {/* Active Connected Users */}
+                {/* Online Users Card */}
                 <Card
+                  onClick={() => loadDetailTab('users')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(56, 189, 248, 0.3)',
                     borderRadius: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -433,7 +545,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#38bdf8', margin: '0.3rem 0 0' }}>
                         {stats.activeUsers}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Active WebSocket connections</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        View online user accounts →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2">
@@ -446,13 +560,16 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
 
-                {/* Registered User Accounts */}
+                {/* Registered Users Card */}
                 <Card
+                  onClick={() => loadDetailTab('users')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(168, 85, 247, 0.3)',
                     borderRadius: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -461,7 +578,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#c084fc', margin: '0.3rem 0 0' }}>
                         {stats.totalUserAccounts}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Total account database</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        View user directory →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168, 85, 247, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2">
@@ -472,13 +591,16 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
 
-                {/* Waiting Lobbies */}
+                {/* Waiting Lobbies Card */}
                 <Card
+                  onClick={() => loadDetailTab('lobbies')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(236, 72, 153, 0.3)',
                     borderRadius: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -487,7 +609,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f472b6', margin: '0.3rem 0 0' }}>
                         {stats.waitingLobbies} <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500 }}>/ {stats.totalLobbies} total</span>
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Open game lobbies</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        View open lobbies →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(236, 72, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(236, 72, 153, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f472b6" strokeWidth="2">
@@ -499,13 +623,16 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
 
-                {/* Total Match Events */}
+                {/* Total Match Events Card */}
                 <Card
+                  onClick={() => loadDetailTab('events')}
                   style={{
                     padding: '1.5rem',
                     background: 'rgba(30, 41, 59, 0.7)',
                     border: '1px solid rgba(250, 204, 21, 0.3)',
                     borderRadius: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -514,7 +641,9 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#facc15', margin: '0.3rem 0 0' }}>
                         {stats.totalMatchEvents}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Total turn actions executed</span>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                        Inspect event stream →
+                      </span>
                     </div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(250, 204, 21, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(250, 204, 21, 0.4)' }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2">
@@ -528,6 +657,345 @@ export default function AdminDashboardPage() {
           </div>
         ) : null}
       </main>
+
+      {/* Drill-down Detail Modal */}
+      {activeTab && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+          }}
+          onClick={() => setActiveTab(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '960px',
+              maxHeight: '85vh',
+              background: '#1e293b',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              borderRadius: '1rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header & Navigation Tabs */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #334155', background: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#f8fafc' }}>
+                  Telemetry Drill-Down Details
+                </h3>
+                <button
+                  onClick={() => setActiveTab(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    lineHeight: 1,
+                    padding: '0.2rem',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Tab Selector Buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <button
+                  onClick={() => loadDetailTab('users')}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: activeTab === 'users' ? '#38bdf8' : 'transparent',
+                    background: activeTab === 'users' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'users' ? '#38bdf8' : '#94a3b8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  User Directory
+                </button>
+
+                <button
+                  onClick={() => loadDetailTab('active_matches')}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: activeTab === 'active_matches' ? '#f59e0b' : 'transparent',
+                    background: activeTab === 'active_matches' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'active_matches' ? '#f59e0b' : '#94a3b8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Active Games
+                </button>
+
+                <button
+                  onClick={() => loadDetailTab('completed_matches')}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: activeTab === 'completed_matches' ? '#10b981' : 'transparent',
+                    background: activeTab === 'completed_matches' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'completed_matches' ? '#34d399' : '#94a3b8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Completed Games
+                </button>
+
+                <button
+                  onClick={() => loadDetailTab('lobbies')}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: activeTab === 'lobbies' ? '#f472b6' : 'transparent',
+                    background: activeTab === 'lobbies' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'lobbies' ? '#f472b6' : '#94a3b8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Lobbies
+                </button>
+
+                <button
+                  onClick={() => loadDetailTab('events')}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: activeTab === 'events' ? '#facc15' : 'transparent',
+                    background: activeTab === 'events' ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'events' ? '#facc15' : '#94a3b8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Action Stream
+                </button>
+              </div>
+            </div>
+
+            {/* Filter / Search Bar */}
+            <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #334155', background: '#1e293b' }}>
+              <input
+                type="text"
+                placeholder="Search by username, email, ID, or action..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '0.5rem',
+                  padding: '0.5rem 0.85rem',
+                  color: '#f8fafc',
+                  fontSize: '0.88rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Modal Body Content */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              {detailLoading ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                  Loading telemetry records...
+                </div>
+              ) : detailError ? (
+                <div style={{ padding: '2rem', color: '#fca5a5', textAlign: 'center' }}>
+                  {detailError}
+                </div>
+              ) : activeTab === 'users' ? (
+                <div>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Showing {filteredUsers.length} user account(s)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #334155', color: '#64748b' }}>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Status</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>User</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Email</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Role</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((u) => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 600, color: u.isOnline ? '#34d399' : '#64748b' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: u.isOnline ? '#10b981' : '#64748b', boxShadow: u.isOnline ? '0 0 6px #10b981' : 'none' }} />
+                              {u.isOnline ? 'Online' : 'Offline'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>
+                            {u.username}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
+                            {u.email}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 700, background: u.role === 'ADMIN' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.08)', color: u.role === 'ADMIN' ? '#f59e0b' : '#94a3b8' }}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : activeTab === 'active_matches' || activeTab === 'completed_matches' ? (
+                <div>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Showing {filteredMatches.length} match(es)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #334155', color: '#64748b' }}>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Match ID</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Mode</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Players</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Status</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMatches.map((m) => (
+                        <tr key={m.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: '#f59e0b' }}>
+                            {m.id.substring(0, 8)}...
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
+                            {m.mode}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#f8fafc' }}>
+                            {m.players.map((p) => p.username).join(', ')}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 700, background: m.status === 'IN_PROGRESS' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)', color: m.status === 'IN_PROGRESS' ? '#f59e0b' : '#34d399' }}>
+                              {m.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <Link href={`/matches/${m.id}`} target="_blank" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>
+                              Inspect →
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : activeTab === 'lobbies' ? (
+                <div>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Showing {filteredLobbies.length} lobby record(s)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #334155', color: '#64748b' }}>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Code</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Host</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Mode</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Players</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLobbies.map((l) => (
+                        <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: '#f472b6' }}>
+                            {l.code}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#f8fafc' }}>
+                            {l.hostUsername}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
+                            {l.mode}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#38bdf8', fontWeight: 600 }}>
+                            {l.playersCount} / {l.maxPlayers}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6' }}>
+                              {l.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : activeTab === 'events' ? (
+                <div>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Showing top {filteredEvents.length} recent action event(s)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #334155', color: '#64748b' }}>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Time</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Player</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Action Type</th>
+                        <th style={{ padding: '0.5rem 0.75rem' }}>Match ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEvents.map((e) => (
+                        <tr key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', color: '#64748b', fontSize: '0.8rem' }}>
+                            {new Date(e.createdAt).toLocaleTimeString()}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>
+                            {e.playerUsername || 'Unknown'}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(250, 204, 21, 0.2)', color: '#facc15' }}>
+                              {e.actionType}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: '#94a3b8' }}>
+                            {e.matchId.substring(0, 8)}...
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

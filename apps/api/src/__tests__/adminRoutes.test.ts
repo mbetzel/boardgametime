@@ -104,4 +104,90 @@ describe('Admin Routes Integration', () => {
     expect(body.systemHealth).toHaveProperty('status');
     expect(body.systemHealth).toHaveProperty('memoryUsageMb');
   });
+
+  it('GET /api/admin/users returns detailed user list for admin', async () => {
+    const adminToken = signToken({
+      sub: 'admin-user-id',
+      email: 'admin@boardgameti.me',
+      username: 'admin',
+      role: 'ADMIN',
+    });
+
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValueOnce({
+      id: 'admin-user-id',
+      username: 'admin',
+      email: 'admin@boardgameti.me',
+      role: 'ADMIN',
+    } as any);
+
+    vi.spyOn(prisma.user, 'findMany').mockResolvedValueOnce([
+      {
+        id: 'admin-user-id',
+        username: 'admin',
+        email: 'admin@boardgameti.me',
+        role: 'ADMIN',
+        avatarUrl: null,
+        gameTurnReminders: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ] as any);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/admin/users',
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.length).toBe(1);
+    expect(body[0]).toHaveProperty('isOnline');
+    expect(body[0].username).toBe('admin');
+  });
+
+  it('GET /api/admin/matches returns detailed match list for admin', async () => {
+    const adminToken = signToken({
+      sub: 'admin-user-id',
+      email: 'admin@boardgameti.me',
+      username: 'admin',
+      role: 'ADMIN',
+    });
+
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValueOnce({
+      id: 'admin-user-id',
+      username: 'admin',
+      email: 'admin@boardgameti.me',
+      role: 'ADMIN',
+    } as any);
+
+    vi.spyOn(prisma.match, 'findMany').mockResolvedValueOnce([
+      {
+        id: 'match-1',
+        gameId: 'kingdoms',
+        mode: 'REALTIME',
+        status: 'IN_PROGRESS',
+        currentTurnPlayerId: 'admin-user-id',
+        players: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ] as any);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/admin/matches?status=IN_PROGRESS',
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body[0].id).toBe('match-1');
+  });
 });

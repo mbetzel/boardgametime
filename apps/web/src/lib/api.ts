@@ -15,6 +15,10 @@ import {
   SubmitActionRequest,
   MatchEventDTO,
   AdminStatsDTO,
+  AdminUserDetailDTO,
+  AdminMatchDetailDTO,
+  AdminLobbyDetailDTO,
+  AdminEventDetailDTO,
 } from '@boardgametime/types';
 
 const getRawApiBaseUrl = (): string => {
@@ -238,4 +242,23 @@ export async function getMatchEvents(id: string): Promise<MatchEventDTO[]> {
 // Admin API
 export async function getAdminStats(): Promise<AdminStatsDTO> {
   return fetchApi<AdminStatsDTO>('/api/admin/stats');
+}
+
+export async function getAdminUsers(onlineOnly?: boolean): Promise<AdminUserDetailDTO[]> {
+  const query = onlineOnly ? '?online=true' : '';
+  return fetchApi<AdminUserDetailDTO[]>(`/api/admin/users${query}`);
+}
+
+export async function getAdminMatches(status?: string): Promise<AdminMatchDetailDTO[]> {
+  const query = status ? `?status=${status}` : '';
+  return fetchApi<AdminMatchDetailDTO[]>(`/api/admin/matches${query}`);
+}
+
+export async function getAdminLobbies(status?: string): Promise<AdminLobbyDetailDTO[]> {
+  const query = status ? `?status=${status}` : '';
+  return fetchApi<AdminLobbyDetailDTO[]>(`/api/admin/lobbies${query}`);
+}
+
+export async function getAdminEvents(): Promise<AdminEventDetailDTO[]> {
+  return fetchApi<AdminEventDetailDTO[]>('/api/admin/events');
 }

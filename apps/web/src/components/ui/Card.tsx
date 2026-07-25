@@ -8,6 +8,7 @@ export interface CardProps {
   className?: string;
   style?: React.CSSProperties;
   glow?: boolean;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -18,6 +19,7 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   style,
   glow = false,
+  onClick,
 }) => {
   const cardStyle: React.CSSProperties = {
     background: 'rgba(30, 41, 59, 0.8)',
@@ -34,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
   };
 
   return (
-    <div style={cardStyle} className={className}>
+    <div style={cardStyle} className={className} onClick={onClick}>
       {(title || subtitle) && (
         <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
           {title && <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc' }}>{title}</h3>}
