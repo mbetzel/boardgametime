@@ -82,6 +82,7 @@ describe('Turn Email Notification System', () => {
     });
 
     it('suppresses turn email if target player does not exist or has invalid match', async () => {
+      vi.spyOn(prisma.match, 'findUnique').mockResolvedValueOnce(null);
       const result = await notifyNextPlayerIfInactive('non-existent-match-id', 'non-existent-user-id');
       expect(result).toBeNull();
     });
