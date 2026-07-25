@@ -22,6 +22,7 @@ export default function HomePage() {
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [matchesError, setMatchesError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedModalGame, setSelectedModalGame] = useState<string>('kingdoms');
   const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,7 +85,9 @@ export default function HomePage() {
     setMatches([]);
   };
 
-  const handleCreateRoomClick = () => {
+  const handleCreateRoomClick = (gameId?: string | React.MouseEvent) => {
+    const chosenGame = typeof gameId === 'string' ? gameId : 'kingdoms';
+    setSelectedModalGame(chosenGame);
     if (!user) {
       router.push('/auth/login');
     } else {
@@ -150,14 +153,11 @@ export default function HomePage() {
                   }}
                 >
                   <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* Castle Walls & Towers SVG Illustration */}
                     <path d="M15 80V45L25 35L35 45V80H15Z" fill="#f59e0b" fillOpacity="0.8" />
                     <path d="M65 80V45L75 35L85 45V80H65Z" fill="#f59e0b" fillOpacity="0.8" />
                     <path d="M30 80V55H70V80H30Z" fill="#d97706" fillOpacity="0.9" />
                     <path d="M40 80V65C40 60 60 60 60 65V80H40Z" fill="#0f172a" />
-                    {/* Crown emblem overhead */}
                     <path d="M35 30L42 22L50 28L58 22L65 30H35Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="2" />
-                    {/* Grid detail */}
                     <rect x="10" y="82" width="80" height="4" fill="#f59e0b" rx="2" />
                   </svg>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', letterSpacing: '0.1em', marginTop: '0.25rem' }}>
@@ -180,100 +180,61 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <Button variant="gold" fullWidth onClick={handleCreateRoomClick}>
+              <Button variant="gold" fullWidth onClick={() => handleCreateRoomClick('kingdoms')}>
                 + Create Room
               </Button>
             </Card>
 
-            {/* Catan - Coming Soon */}
-            <Card style={{ opacity: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            {/* Dungeons, Dice & Danger Game Card */}
+            <Card glow style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
+                {/* Thumbnail Artwork */}
                 <div
                   style={{
                     width: '100%',
                     height: '160px',
                     borderRadius: '8px',
                     marginBottom: '1rem',
-                    background: 'linear-gradient(135deg, #14532d 0%, #064e3b 50%, #0f172a 100%)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'linear-gradient(135deg, #78350f 0%, #451a03 50%, #0f172a 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  {/* Hexagon icon */}
-                  <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="50,15 85,35 85,75 50,95 15,75 15,35" fill="#15803d" stroke="#4ade80" strokeWidth="3" opacity="0.6" />
-                    <text x="50" y="58" textAnchor="middle" fill="#4ade80" fontSize="24" fontWeight="bold">🎲</text>
+                  <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="20" width="30" height="30" rx="6" fill="#f59e0b" />
+                    <circle cx="35" cy="35" r="4" fill="#0f172a" />
+                    <rect x="52" y="38" width="30" height="30" rx="6" fill="#10b981" />
+                    <circle cx="62" cy="48" r="3" fill="#0f172a" />
+                    <circle cx="72" cy="58" r="3" fill="#0f172a" />
+                    <path d="M50 72L65 85H35L50 72Z" fill="#ef4444" />
                   </svg>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4ade80', marginTop: '0.25rem' }}>
-                    IN DEVELOPMENT
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', letterSpacing: '0.1em', marginTop: '0.25rem' }}>
+                    RICHARD GARFIELD 2022
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                  <Badge variant="neutral" size="sm">3-4 Players</Badge>
-                  <Badge variant="warning" size="sm">Coming Soon</Badge>
+                  <Badge variant="gold" size="sm">1-4 Players (Solo Mode)</Badge>
+                  <Badge variant="info" size="sm">Roll & Write</Badge>
+                  <Badge variant="success" size="sm">Realtime & Async</Badge>
                 </div>
 
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.5rem' }}>
-                  Catan
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                  Dungeons, Dice & Danger
                 </h3>
 
-                <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
-                  Trade, build, and settle. Collect resources to expand settlements and claim victory on the island.
+                <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
+                  Richard Garfield&apos;s roll-and-write dungeon crawler. Roll dice, form pairs, explore 4 distinct dungeons, fight monsters, and collect treasure.
                 </p>
               </div>
 
-              <Button variant="secondary" fullWidth disabled>
-                Coming Soon
-              </Button>
-            </Card>
-
-            {/* Carcassonne - Coming Soon */}
-            <Card style={{ opacity: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '160px',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {/* Meeple / landscape icon */}
-                  <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="30" r="12" fill="#60a5fa" opacity="0.7" />
-                    <path d="M35 80 C35 55 65 55 65 80 Z" fill="#60a5fa" opacity="0.7" />
-                  </svg>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#60a5fa', marginTop: '0.25rem' }}>
-                    IN DEVELOPMENT
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                  <Badge variant="neutral" size="sm">2-5 Players</Badge>
-                  <Badge variant="warning" size="sm">Coming Soon</Badge>
-                </div>
-
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.5rem' }}>
-                  Carcassonne
-                </h3>
-
-                <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
-                  Draw and place landscape tiles to build cities, roads, and monasteries across southern France.
-                </p>
-              </div>
-
-              <Button variant="secondary" fullWidth disabled>
-                Coming Soon
+              <Button variant="gold" fullWidth onClick={() => handleCreateRoomClick('dungeons-dice-danger')}>
+                + Create Room
               </Button>
             </Card>
           </div>
@@ -331,7 +292,7 @@ export default function HomePage() {
                     title={
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
-                          Kingdoms
+                          {lobby.gameId === 'kingdoms' ? 'Kingdoms' : lobby.gameId === 'dungeons-dice-danger' ? 'Dungeons, Dice & Danger' : lobby.gameId}
                         </span>
                         <Badge variant={lobby.mode === 'REALTIME' ? 'gold' : 'info'} size="sm">
                           {lobby.mode === 'REALTIME' ? '⚡ Realtime' : '⏳ Async'}
@@ -488,6 +449,7 @@ export default function HomePage() {
       {/* Create Room Modal */}
       <CreateLobbyModal
         isOpen={isCreateModalOpen}
+        initialGameId={selectedModalGame}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(createdLobby) => {
           setIsCreateModalOpen(false);

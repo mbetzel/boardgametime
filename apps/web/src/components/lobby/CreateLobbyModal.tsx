@@ -11,18 +11,25 @@ export interface CreateLobbyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (lobby: LobbyDTO) => void;
+  initialGameId?: string;
 }
 
 export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  initialGameId = 'kingdoms',
 }) => {
+  const [gameId, setGameId] = useState<string>(initialGameId);
   const [mode, setMode] = useState<PlayMode>('REALTIME');
   const [visibility, setVisibility] = useState<LobbyVisibility>('PUBLIC');
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setGameId(initialGameId);
+  }, [initialGameId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +38,11 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
 
     try {
       const lobby = await createLobby({
-        gameId: 'kingdoms',
+        gameId,
         mode,
         visibility,
         maxPlayers,
-        minPlayers: 2,
+        minPlayers: gameId === 'dungeons-dice-danger' ? 1 : 2,
       });
       onSuccess(lobby);
     } catch (err: any) {
@@ -72,9 +79,24 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#cbd5e1', marginBottom: '0.5rem' }}>
             Game Title
           </label>
-          <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: '#f59e0b', fontWeight: 600 }}>
-            Kingdoms (Reiner Knizia)
-          </div>
+          <select
+            value={gameId}
+            onChange={(e) => setGameId(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
+              color: '#f59e0b',
+              fontWeight: 600,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="kingdoms">Kingdoms (Reiner Knizia)</option>
+            <option value="dungeons-dice-danger">Dungeons, Dice & Danger (Richard Garfield)</option>
+          </select>
         </div>
 
         <div>
