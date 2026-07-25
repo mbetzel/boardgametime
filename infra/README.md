@@ -151,3 +151,93 @@ terraform destroy \
   -var="project_id=YOUR_GCP_PROJECT_ID" \
   -var="region=us-central1"
 ```
+
+---
+
+## 🤖 GitHub Actions CI/CD Deployment
+
+The repository includes an automated deployment pipeline via GitHub Actions that builds Docker images, pushes them to Artifact Registry, and deploys to Cloud Run on every push to `main`. Deployments can also be triggered manually from the GitHub Actions UI.
+
+### One-Time Setup: Workload Identity Federation
+
+The workflow uses [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation) for keyless authentication (no service account JSON keys). Run these commands once in your GCP project:
+
+```bash
+PROJECT_ID="boardgametime-app"
+
+# Create a Workload Identity Pool
+gcloud iam workload-identity-pools create "github-actions-pool" \
+  --location="global" \
+  --display-name="GitHub Actions Pool"
+
+# Create an OIDC Provider linked to GitHub
+gcloud iam workload-identity-pools providers create-oidc "github-provider" \
+  --location="global" \
+  --workload-identity-pool="github-actions-pool" \
+  --display-name="GitHub Provider" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --issuer-uri="https://token.actions.githubusercontent.com"
+
+# Create a Service Account for deployments
+gcloud iam service-accounts create github-actions-deployer \
+  --display-name="GitHub Actions Deployer"
+
+SA_EMAIL="github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Grant required roles
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA_EMAIL}" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA_EMAIL}" --role="roles/artifactregistry.writer"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA_EMAIL}" --role="roles/iam.serviceAccountUser"
+
+# Allow GitHub Actions to impersonate the SA (replace PROJECT_NUMBER with your actual project number)
+gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-actions-pool/attribute.repository/mbetzel/boardgametime"
+```
+
+> **Tip**: Find your project number with `gcloud projects describe $PROJECT_ID --format='value(projectNumber)'`
+
+### Required GitHub Repository Secrets
+
+Configure these secrets in **Settings → Secrets and variables → Actions**:
+
+| Secret Name | Description | Example Value |
+|---|---|---|
+| `GCP_PROJECT_ID` | GCP project ID | `boardgametime-app` |
+| `GCP_REGION` | GCP deployment region | `us-central1` |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full WIF provider resource name | `projects/PROJECT_NUMBER/locations/global/...` |
+| `GCP_SERVICE_ACCOUNT` | Deployer service account email | `github-actions-deployer@boardgametime-app.iam.gserviceaccount.com` |
+| `NEXT_PUBLIC_API_URL` | Production API URL for the web frontend | `https://boardgametime-api-xxx-uc.a.run.app` |
+| `DB_PASSWORD` | Cloud SQL database password | *(sensitive)* |
+
+### Triggering a Deploy
+
+**Automatic**: Every push to the `main` branch triggers a full build + deploy.
+
+**Manual**: Go to **Actions → Deploy to GCP Cloud Run → Run workflow** and select the `main` branch.
+
+### Image Tagging & Rollback
+
+Each deploy tags images with both the short Git SHA (e.g., `a1b2c3d`) and `latest`. To roll back to a previous revision:
+
+```bash
+# List recent revisions
+gcloud run revisions list --service=boardgametime-api --region=us-central1
+
+# Route 100% traffic to a previous revision
+gcloud run services update-traffic boardgametime-api \
+  --region=us-central1 \
+  --to-revisions=boardgametime-api-REVISION_NAME=100
+```
+
+### Database Migrations
+
+Prisma migrations are **not** run automatically during deployment. When deploying schema changes, run migrations manually before deploying the new code:
+
+```bash
+# Via Cloud SQL Auth Proxy or a direct connection
+pnpm --filter @boardgametime/db exec prisma migrate deploy
+```

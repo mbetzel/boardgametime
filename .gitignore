@@ -13,3 +13,8 @@ out
 .idea/
 *.tsbuildinfo
 
+# Terraform sensitive files
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
