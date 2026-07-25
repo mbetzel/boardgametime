@@ -81,7 +81,13 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
           </label>
           <select
             value={gameId}
-            onChange={(e) => setGameId(e.target.value)}
+            onChange={(e) => {
+              const newGameId = e.target.value;
+              setGameId(newGameId);
+              if (newGameId === 'kingdoms' && maxPlayers < 2) {
+                setMaxPlayers(2);
+              }
+            }}
             style={{
               width: '100%',
               padding: '0.75rem',
@@ -148,12 +154,12 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
         </div>
 
         <Input
-          label="Max Players (2 - 4)"
+          label={`Max Players (${gameId === 'dungeons-dice-danger' ? '1 - 4' : '2 - 4'})`}
           type="number"
-          min={2}
+          min={gameId === 'dungeons-dice-danger' ? 1 : 2}
           max={4}
           value={maxPlayers}
-          onChange={(e) => setMaxPlayers(parseInt(e.target.value) || 2)}
+          onChange={(e) => setMaxPlayers(parseInt(e.target.value) || (gameId === 'dungeons-dice-danger' ? 1 : 2))}
         />
       </form>
     </Modal>
