@@ -26,7 +26,7 @@ variable "db_password" {
   type        = string
   description = "Password for Cloud SQL PostgreSQL user"
   sensitive   = true
-  default     = "SuperSecretDBPassword123!"
+  default     = "BoardGameTime2026SecurePass"
 }
 
 variable "api_container_image" {
@@ -39,4 +39,11 @@ variable "web_container_image" {
   type        = string
   description = "Docker image for boardgametime Next.js web application"
   default     = "us-central1-docker.pkg.dev/boardgametime-dev/boardgametime-repo/web:latest"
+}
+
+variable "resend_api_key" {
+  type        = string
+  description = "API key for Resend email provider"
+  sensitive   = true
+  default     = ""
 }

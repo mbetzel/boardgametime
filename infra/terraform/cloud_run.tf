@@ -22,10 +22,6 @@ resource "google_cloud_run_v2_service" "api_service" {
         value = "production"
       }
       env {
-        name  = "PORT"
-        value = "3000"
-      }
-      env {
         name  = "DATABASE_URL"
         value = "postgresql://${google_sql_user.db_user.name}:${var.db_password}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
       }
@@ -36,6 +32,18 @@ resource "google_cloud_run_v2_service" "api_service" {
       env {
         name  = "REDIS_PORT"
         value = "6379"
+      }
+      env {
+        name  = "EMAIL_PROVIDER"
+        value = "resend"
+      }
+      env {
+        name  = "RESEND_API_KEY"
+        value = var.resend_api_key
+      }
+      env {
+        name  = "EMAIL_FROM"
+        value = "BoardGameTime <onboarding@resend.dev>"
       }
 
       resources {
@@ -70,10 +78,6 @@ resource "google_cloud_run_v2_service" "web_service" {
       env {
         name  = "NODE_ENV"
         value = "production"
-      }
-      env {
-        name  = "PORT"
-        value = "3000"
       }
       env {
         name  = "NEXT_PUBLIC_API_URL"

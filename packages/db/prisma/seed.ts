@@ -5,6 +5,7 @@ async function main() {
   const passwordHash = await bcrypt.hash('Password123!', 10);
   const alicePasswordHash = await bcrypt.hash('alice', 10);
   const bobPasswordHash = await bcrypt.hash('bob', 10);
+  const charliePasswordHash = await bcrypt.hash('charlie', 10);
   const adminPasswordHash = await bcrypt.hash('admin', 10);
 
   await prisma.user.upsert({
