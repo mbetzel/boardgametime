@@ -1,11 +1,13 @@
 import React from 'react';
 import { PlayerSheetState } from '@boardgametime/game-dungeons-dice-danger';
+import { Badge } from '../../ui/Badge';
 
 interface PlayerTrackerCardProps {
   playerState: PlayerSheetState;
   username: string;
   isActivePlayer: boolean;
   isCurrentUser: boolean;
+  avatarUrl?: string | null;
 }
 
 export const PlayerTrackerCard: React.FC<PlayerTrackerCardProps> = ({
@@ -13,71 +15,126 @@ export const PlayerTrackerCard: React.FC<PlayerTrackerCardProps> = ({
   username,
   isActivePlayer,
   isCurrentUser,
+  avatarUrl,
 }) => {
   return (
     <div
-      className={`p-4 rounded-xl border transition-all ${
-        isActivePlayer
-          ? 'bg-amber-950/40 border-amber-500/50 shadow-lg shadow-amber-500/10'
-          : 'bg-slate-900/60 border-slate-800'
-      }`}
+      style={{
+        backgroundColor: isActivePlayer ? 'rgba(245, 158, 11, 0.12)' : '#1e293b',
+        border: isActivePlayer ? '2px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '1rem',
+        boxShadow: isActivePlayer ? '0 0 20px rgba(245, 158, 11, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.2s ease-in-out',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              isActivePlayer ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'
-            }`}
-          />
-          <span className="font-semibold text-slate-100 text-sm">
-            {username} {isCurrentUser && '(You)'}
+      {/* Active Turn Accent Bar */}
+      {isActivePlayer && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '4px',
+            height: '100%',
+            backgroundColor: '#f59e0b',
+          }}
+        />
+      )}
+
+      {/* Header: User & Badges */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={username}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                border: '2px solid #f59e0b',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                color: '#0f172a',
+                fontSize: '0.85rem',
+              }}
+            >
+              {username.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {username}
+            {isCurrentUser && (
+              <span style={{ fontSize: '0.7rem', color: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.2)', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.4)' }}>
+                YOU
+              </span>
+            )}
           </span>
         </div>
-        {isActivePlayer && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium">
-            Active Roller
-          </span>
+
+        {isActivePlayer ? (
+          <Badge variant="gold" size="sm">
+            🎲 ACTIVE ROLLER
+          </Badge>
+        ) : (
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Waiting</span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        {/* Health Track */}
-        <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
-          <div className="text-slate-400 mb-1 flex justify-between">
-            <span>Health</span>
-            <span className="text-red-400 font-mono font-bold">{playerState.health} HP</span>
-          </div>
-          <div className="flex space-x-1">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-2 flex-1 rounded-sm ${
-                  i < playerState.health ? 'bg-emerald-500' : 'bg-rose-950 border border-rose-900/50'
-                }`}
-              />
-            ))}
-          </div>
-          {playerState.skullsCrossed > 0 && (
-            <span className="text-[10px] text-rose-400 mt-1 block">
-              💀 {playerState.skullsCrossed} Skulls (-{playerState.skullsCrossed} VP)
-            </span>
-          )}
+      {/* Health Bar Track */}
+      <div style={{ backgroundColor: '#0f172a', padding: '0.6rem 0.75rem', borderRadius: '8px', marginBottom: '0.65rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.35rem' }}>
+          <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Health Points:</span>
+          <span style={{ color: '#f87171', fontWeight: 800 }}>{playerState.health} HP</span>
         </div>
+        <div style={{ display: 'flex', gap: '3px' }}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                height: '8px',
+                flex: 1,
+                borderRadius: '2px',
+                backgroundColor: i < playerState.health ? '#10b981' : 'rgba(239, 68, 68, 0.2)',
+                border: i < playerState.health ? '1px solid #059669' : '1px solid rgba(239, 68, 68, 0.4)',
+              }}
+            />
+          ))}
+        </div>
+        {playerState.skullsCrossed > 0 && (
+          <div style={{ fontSize: '0.7rem', color: '#f87171', marginTop: '0.25rem' }}>
+            💀 {playerState.skullsCrossed} Skulls (-{playerState.skullsCrossed} VP)
+          </div>
+        )}
+      </div>
 
-        {/* Abilities & Treasures */}
-        <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 space-y-1.5">
-          <div className="flex justify-between items-center text-slate-300">
-            <span>🎲 Black Die:</span>
-            <span className="font-bold text-amber-400">{playerState.blackDieCharges} uses</span>
-          </div>
-          <div className="flex justify-between items-center text-slate-300">
-            <span>🔦 Torches:</span>
-            <span className="font-bold text-orange-400">{playerState.torches}</span>
-          </div>
-          <div className="flex justify-between items-center text-slate-300">
-            <span>💎 Gems:</span>
-            <span className="font-bold text-cyan-400">{playerState.gems} ({playerState.gems * 3} VP)</span>
-          </div>
+      {/* Items & Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', fontSize: '0.75rem' }}>
+        <div style={{ backgroundColor: '#0f172a', padding: '0.4rem', borderRadius: '6px', textAlign: 'center' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.65rem' }}>🎲 Black Die</div>
+          <div style={{ fontWeight: 800, color: '#fbbf24' }}>{playerState.blackDieCharges} charges</div>
+        </div>
+        <div style={{ backgroundColor: '#0f172a', padding: '0.4rem', borderRadius: '6px', textAlign: 'center' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.65rem' }}>🔦 Torches</div>
+          <div style={{ fontWeight: 800, color: '#f97316' }}>{playerState.torches}</div>
+        </div>
+        <div style={{ backgroundColor: '#0f172a', padding: '0.4rem', borderRadius: '6px', textAlign: 'center' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.65rem' }}>💎 Gems</div>
+          <div style={{ fontWeight: 800, color: '#38bdf8' }}>{playerState.gems} ({playerState.gems * 3} VP)</div>
         </div>
       </div>
     </div>

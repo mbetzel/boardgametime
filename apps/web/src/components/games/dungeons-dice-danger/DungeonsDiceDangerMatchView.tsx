@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import {
   DungeonsDiceDangerGameState,
-  DungeonsDiceDangerAction,
   PairSubmission,
   getMapDefinition,
 } from '@boardgametime/game-dungeons-dice-danger';
+import { MatchEventDTO } from '@boardgametime/types';
 import { DungeonSheet } from './DungeonSheet';
 import { DicePairSelector } from './DicePairSelector';
 import { PlayerTrackerCard } from './PlayerTrackerCard';
+import { TurnHistoryLog } from '../../game/TurnHistoryLog';
+import { Button } from '../../ui/Button';
 
 interface DungeonsDiceDangerMatchViewProps {
   matchId: string;
   gameState: DungeonsDiceDangerGameState;
   currentUserId: string;
   onSendAction: (actionType: string, actionPayload: unknown) => void;
-  players: Array<{ userId: string; username: string }>;
+  players: Array<{ userId: string; username: string; avatarUrl?: string | null }>;
+  events?: MatchEventDTO[];
 }
 
 export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewProps> = ({
@@ -23,6 +26,7 @@ export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewPr
   currentUserId,
   onSendAction,
   players,
+  events = [],
 }) => {
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const mapDef = getMapDefinition(gameState.mapId);
@@ -41,65 +45,84 @@ export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewPr
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header Info */}
-      <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+    <main
+      style={{
+        flex: 1,
+        maxWidth: '1280px',
+        width: '100%',
+        margin: '0 auto',
+        padding: '1.5rem 1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+      }}
+    >
+      {/* Top Game Banner / Header Bar */}
+      <div
+        style={{
+          backgroundColor: '#1e293b',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        }}
+      >
         <div>
-          <span className="text-xs text-amber-400 font-bold uppercase tracking-wider">
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Round {gameState.round}
           </span>
-          <h1 className="text-2xl font-black text-slate-100 flex items-center space-x-2">
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>Dungeons, Dice & Danger</span>
           </h1>
         </div>
 
-        {/* Phase Action Callout */}
-        <div className="flex items-center space-x-4">
+        {/* Phase Roll & Submissions Callout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {gameState.phase === 'ROLLING' && (
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-slate-300">
-                Active Player:{' '}
-                <strong className="text-amber-400 font-semibold">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
+                Active Roller:{' '}
+                <strong style={{ color: '#f59e0b' }}>
                   {activeUser?.username || gameState.activePlayerId}
                 </strong>
               </span>
               {isActivePlayer ? (
-                <button
-                  onClick={handleRollDice}
-                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all"
-                >
+                <Button variant="gold" size="md" onClick={handleRollDice}>
                   🎲 Roll 5 Dice
-                </button>
+                </Button>
               ) : (
-                <span className="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-lg animate-pulse">
-                  Waiting for roll...
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', background: '#0f172a', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
+                  Waiting for active player roll...
                 </span>
               )}
             </div>
           )}
 
           {gameState.phase === 'SUBMITTING_PAIRS' && (
-            <div className="text-sm text-amber-300 font-medium">
+            <div style={{ fontSize: '0.9rem', color: '#fbbf24', fontWeight: 700 }}>
               {hasSubmitted ? '✓ Submitted! Waiting for other players...' : 'Select 2 pairs for this round'}
             </div>
           )}
         </div>
       </div>
 
-      {/* Main Grid & Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Dungeon Sheet */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main 2-Column Game Layout (Wireframe Page 5 - Board Left, Players & Log Right) */}
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
+        
+        {/* Left Section: Main Game Board (DungeonSheet) & Dice Pair Selector */}
+        <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <DungeonSheet
             mapDef={mapDef}
             playerState={currentUserState}
             selectedCellId={selectedCellId}
             onSelectCell={(cellId) => setSelectedCellId(cellId)}
           />
-        </div>
 
-        {/* Right Col: Dice Selector & Players List */}
-        <div className="space-y-6">
           {gameState.phase === 'SUBMITTING_PAIRS' && gameState.currentRoll && !hasSubmitted && (
             <DicePairSelector
               roll={gameState.currentRoll}
@@ -108,11 +131,13 @@ export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewPr
               onSubmitPairs={handleSubmitPairs}
             />
           )}
+        </div>
 
-          {/* Player Cards */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-              Players ({players.length})
+        {/* Right Sidebar Section: Player Status Cards & Turn History Log */}
+        <div style={{ flex: '1 1 340px', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f59e0b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              👥 Player Status ({players.length})
             </h3>
             {players.map((p) => {
               const pState = gameState.playerStates[p.userId];
@@ -124,42 +149,59 @@ export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewPr
                   username={p.username}
                   isActivePlayer={p.userId === gameState.activePlayerId}
                   isCurrentUser={p.userId === currentUserId}
+                  avatarUrl={p.avatarUrl}
                 />
               );
             })}
           </div>
+
+          <TurnHistoryLog
+            events={events}
+            players={players.map((p, idx) => ({
+              id: p.userId,
+              matchId,
+              userId: p.userId,
+              username: p.username,
+              seatIndex: idx,
+              avatarUrl: p.avatarUrl || null,
+            }))}
+          />
         </div>
       </div>
 
-      {/* Final Game Scoring Modal */}
+      {/* Final Game Completion Modal */}
       {gameState.isComplete && gameState.lastScoringResult && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-amber-500/50 p-6 rounded-2xl max-w-md w-full text-slate-100 shadow-2xl space-y-4">
-            <h2 className="text-2xl font-black text-center text-amber-400">🏆 Game Completed!</h2>
-            <div className="text-center text-sm text-slate-300">
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 50 }}>
+          <div style={{ backgroundColor: '#0f172a', border: '2px solid #f59e0b', borderRadius: '16px', padding: '1.5rem', maxWidth: '450px', width: '100%', color: '#f8fafc', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 900, textAlign: 'center', color: '#f59e0b', margin: '0 0 0.5rem 0' }}>
+              🏆 Game Completed!
+            </h2>
+            <div style={{ textAlign: 'center', fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '1rem' }}>
               Winner:{' '}
-              <span className="text-emerald-400 font-bold">
+              <strong style={{ color: '#34d399' }}>
                 {players.find((p) => p.userId === gameState.winnerPlayerId)?.username ||
                   gameState.winnerPlayerId}
-              </span>
+              </strong>
             </div>
 
-            <div className="space-y-2 py-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '1rem 0' }}>
               {Object.entries(gameState.lastScoringResult.breakdown).map(([pid, b]) => (
                 <div
                   key={pid}
-                  className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-sm"
+                  style={{ backgroundColor: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <span className="font-semibold text-slate-200">
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                     {players.find((p) => p.userId === pid)?.username || pid}
                   </span>
-                  <span className="font-bold text-amber-400">{b.totalVP} VP</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fbbf24' }}>
+                    {b.totalVP} VP
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 };

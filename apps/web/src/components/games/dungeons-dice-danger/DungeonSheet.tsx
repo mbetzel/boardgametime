@@ -1,5 +1,5 @@
 import React from 'react';
-import { DungeonMapDefinition, MapCell, PlayerSheetState } from '@boardgametime/game-dungeons-dice-danger';
+import { DungeonMapDefinition, PlayerSheetState } from '@boardgametime/game-dungeons-dice-danger';
 
 interface DungeonSheetProps {
   mapDef: DungeonMapDefinition;
@@ -21,73 +21,138 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
   const maxCol = Math.max(...cellsList.map((c) => c.col), 5);
 
   return (
-    <div className="bg-slate-900/95 border border-slate-800 p-6 rounded-2xl shadow-2xl space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center space-x-2">
-            <span>🏰 Map: {mapDef.name}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {mapDef.difficulty}
+    <div
+      style={{
+        backgroundColor: '#0f172a',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.25rem',
+        width: '100%',
+      }}
+    >
+      {/* Header Info */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.5rem' }}>🏰</span>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+              Map: {mapDef.name}
+            </h2>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Difficulty: {mapDef.difficulty}
             </span>
-          </h2>
+          </div>
         </div>
-        <div className="text-xs text-slate-400">
-          Visited: <span className="text-emerald-400 font-bold">{playerState.visitedCellIds.length}</span> spaces
+        <div style={{ fontSize: '0.85rem', color: '#94a3b8', background: '#1e293b', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          Visited: <strong style={{ color: '#34d399' }}>{playerState.visitedCellIds.length}</strong> / {cellsList.length} spaces
         </div>
       </div>
 
-      {/* Grid Canvas */}
-      <div className="overflow-x-auto py-2">
+      {/* Grid Canvas matching paper map sheet */}
+      <div style={{ overflowX: 'auto', width: '100%', padding: '0.5rem 0' }}>
         <div
-          className="grid gap-3 min-w-[500px]"
           style={{
-            gridTemplateRows: `repeat(${maxRow + 1}, minmax(0, 1fr))`,
-            gridTemplateColumns: `repeat(${maxCol + 1}, minmax(0, 1fr))`,
+            display: 'grid',
+            gridTemplateRows: `repeat(${maxRow + 1}, minmax(75px, 1fr))`,
+            gridTemplateColumns: `repeat(${maxCol + 1}, minmax(75px, 1fr))`,
+            gap: '0.75rem',
+            minWidth: '520px',
+            width: '100%',
           }}
         >
           {cellsList.map((cell) => {
             const isVisited = playerState.visitedCellIds.includes(cell.id);
             const isSelected = selectedCellId === cell.id;
 
-            let bgColor = 'bg-slate-800 border-slate-700 text-slate-200';
+            let bgColor = '#1e293b';
+            let borderColor = 'rgba(255, 255, 255, 0.1)';
+            let textColor = '#f8fafc';
+            let badgeText = '';
+
             if (cell.type === 'START') {
-              bgColor = 'bg-emerald-950/80 border-emerald-500 text-emerald-300 font-bold';
+              bgColor = 'rgba(16, 185, 129, 0.2)';
+              borderColor = '#10b981';
+              textColor = '#34d399';
+              badgeText = 'START';
             } else if (cell.type === 'GRAY_ACTIVATION') {
-              bgColor = 'bg-slate-700/80 border-slate-400 text-slate-100';
+              bgColor = 'rgba(100, 116, 139, 0.3)';
+              borderColor = '#94a3b8';
+              textColor = '#e2e8f0';
+              badgeText = 'GRAY';
             } else if (cell.type === 'CHEST') {
-              bgColor = 'bg-amber-950/80 border-amber-500 text-amber-300';
+              bgColor = 'rgba(245, 158, 11, 0.2)';
+              borderColor = '#f59e0b';
+              textColor = '#fbbf24';
+              badgeText = 'CHEST';
             } else if (cell.type === 'MONSTER') {
-              bgColor = 'bg-rose-950/80 border-rose-600 text-rose-300';
+              bgColor = 'rgba(239, 68, 68, 0.2)';
+              borderColor = '#ef4444';
+              textColor = '#f87171';
+              badgeText = cell.label?.split(':')[0] || 'MONSTER';
             }
 
             if (isVisited) {
-              bgColor = 'bg-slate-900 border-emerald-500 text-emerald-400 opacity-60 line-through';
-            }
-
-            if (isSelected) {
-              bgColor += ' ring-4 ring-amber-400 scale-105 z-10 shadow-lg';
+              bgColor = '#090d16';
+              borderColor = '#10b981';
+              textColor = '#64748b';
             }
 
             return (
               <button
                 key={cell.id}
+                type="button"
                 disabled={disabled || isVisited}
                 onClick={() => onSelectCell && onSelectCell(cell.id)}
                 style={{
                   gridRowStart: cell.row + 1,
                   gridColumnStart: cell.col + 1,
+                  backgroundColor: bgColor,
+                  border: isSelected ? '2px solid #fbbf24' : `1px solid ${borderColor}`,
+                  boxShadow: isSelected ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none',
+                  borderRadius: '12px',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.2rem',
+                  cursor: !isVisited && !disabled ? 'pointer' : 'default',
+                  opacity: isVisited ? 0.6 : 1,
+                  transition: 'all 0.2s ease-in-out',
+                  position: 'relative',
                 }}
-                className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all min-h-[70px] ${bgColor} ${
-                  !isVisited && !disabled ? 'hover:scale-105 hover:border-amber-400 cursor-pointer' : ''
-                }`}
               >
-                <span className="text-xs font-bold font-mono">{cell.label || cell.value}</span>
-                {cell.type === 'CHEST' && <span className="text-base mt-0.5">📦</span>}
-                {cell.type === 'MONSTER' && <span className="text-base mt-0.5">🐉</span>}
-                {cell.requiresActivationCellId && (
-                  <span className="text-[9px] text-slate-400 mt-0.5">🔒 Req Gray</span>
+                {/* Space Type Badge */}
+                {badgeText && (
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: textColor, opacity: 0.8 }}>
+                    {badgeText}
+                  </span>
                 )}
-                {isVisited && <span className="text-xs text-emerald-400 font-bold">✓</span>}
+
+                {/* Dice Value / Sum Target */}
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'monospace', color: textColor }}>
+                  {cell.value ?? cell.label ?? '—'}
+                </span>
+
+                {/* Icons */}
+                {cell.type === 'CHEST' && <span style={{ fontSize: '1.1rem' }}>📦</span>}
+                {cell.type === 'MONSTER' && <span style={{ fontSize: '1.1rem' }}>🐉</span>}
+                {cell.requiresActivationCellId && (
+                  <span style={{ fontSize: '0.6rem', color: '#94a3b8', background: '#0f172a', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>
+                    🔒 Req Gray
+                  </span>
+                )}
+
+                {/* Visited Checkmark */}
+                {isVisited && (
+                  <span style={{ fontSize: '1rem', color: '#34d399', fontWeight: 900, position: 'absolute', top: '4px', right: '6px' }}>
+                    ✓
+                  </span>
+                )}
               </button>
             );
           })}

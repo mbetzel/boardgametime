@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DiceRoll, PairSubmission } from '@boardgametime/game-dungeons-dice-danger';
+import { Button } from '../../ui/Button';
 
 interface DicePairSelectorProps {
   roll: DiceRoll;
@@ -27,7 +28,7 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
   const handleDieClick = (index: number) => {
     if (disabled) return;
     if (index === 4 && !isActivePlayer && !useBlackDie) {
-      return; // Cannot select black die unless passive player toggled useBlackDie
+      return;
     }
 
     if (selectedForPair1.includes(index)) {
@@ -71,11 +72,25 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 text-slate-100">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-lg text-amber-400">🎲 Roll & Pair Selector</h3>
+    <div
+      style={{
+        backgroundColor: '#1e293b',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '16px',
+        padding: '1.25rem',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        color: '#f8fafc',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#f59e0b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          🎲 Roll & Pair Selector
+        </h3>
         {!isActivePlayer && (
-          <label className="flex items-center space-x-2 text-xs bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 cursor-pointer">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#cbd5e1', background: '#0f172a', padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={useBlackDie}
@@ -87,32 +102,37 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
                   setSelectedForPair2(selectedForPair2.filter((i) => i !== 4));
                 }
               }}
-              className="accent-amber-500 rounded"
             />
-            <span className="text-slate-300">
-              Use Black Die ({blackDieCharges} charges left)
-            </span>
+            <span>Use Black Die ({blackDieCharges} left)</span>
           </label>
         )}
       </div>
 
-      {/* Dice Visualizer */}
-      <div className="flex justify-center items-center space-x-3 py-2">
+      {/* Dice visual buttons */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0' }}>
         {roll.whiteDice.map((val, idx) => {
           const inP1 = selectedForPair1.includes(idx);
           const inP2 = selectedForPair2.includes(idx);
           return (
             <button
               key={idx}
+              type="button"
               disabled={disabled}
               onClick={() => handleDieClick(idx)}
-              className={`w-12 h-12 rounded-xl text-xl font-bold font-mono transition-all transform hover:scale-105 shadow-md flex items-center justify-center border-2 ${
-                inP1
-                  ? 'bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50'
-                  : inP2
-                  ? 'bg-emerald-600 border-emerald-400 text-white ring-2 ring-emerald-400/50'
-                  : 'bg-slate-800 border-slate-700 text-slate-100 hover:border-slate-500'
-              }`}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '10px',
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                backgroundColor: inP1 ? '#2563eb' : inP2 ? '#059669' : '#0f172a',
+                border: inP1 ? '2px solid #60a5fa' : inP2 ? '2px solid #34d399' : '1px solid #334155',
+                color: '#f8fafc',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: inP1 ? '0 0 10px rgba(96, 165, 250, 0.4)' : inP2 ? '0 0 10px rgba(52, 211, 153, 0.4)' : 'none',
+              }}
             >
               {val}
             </button>
@@ -121,29 +141,43 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
 
         {/* Black Die */}
         <button
+          type="button"
           disabled={disabled || (!isActivePlayer && !useBlackDie)}
           onClick={() => handleDieClick(4)}
-          className={`w-12 h-12 rounded-xl text-xl font-bold font-mono transition-all transform hover:scale-105 shadow-md flex items-center justify-center border-2 ${
-            !isActivePlayer && !useBlackDie
-              ? 'bg-slate-950 border-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
-              : selectedForPair1.includes(4)
-              ? 'bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50'
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '10px',
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            fontFamily: 'monospace',
+            backgroundColor: selectedForPair1.includes(4)
+              ? '#2563eb'
               : selectedForPair2.includes(4)
-              ? 'bg-emerald-600 border-emerald-400 text-white ring-2 ring-emerald-400/50'
-              : 'bg-black border-amber-500 text-amber-400 hover:border-amber-300'
-          }`}
+              ? '#059669'
+              : '#000000',
+            border: selectedForPair1.includes(4)
+              ? '2px solid #60a5fa'
+              : selectedForPair2.includes(4)
+              ? '2px solid #34d399'
+              : '2px solid #f59e0b',
+            color: '#fbbf24',
+            cursor: !isActivePlayer && !useBlackDie ? 'not-allowed' : 'pointer',
+            opacity: !isActivePlayer && !useBlackDie ? 0.4 : 1,
+            transition: 'all 0.2s ease-in-out',
+          }}
         >
           {roll.blackDie}
         </button>
       </div>
 
       {/* Pairs Summary */}
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', fontSize: '0.85rem' }}>
         {/* Pair 1 */}
-        <div className="bg-slate-950 p-3 rounded-xl border border-blue-900/50 flex flex-col justify-between space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-blue-400 font-semibold">Pair 1</span>
-            <label className="text-xs text-slate-400 flex items-center space-x-1 cursor-pointer">
+        <div style={{ backgroundColor: '#0f172a', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.3)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#60a5fa', fontWeight: 700 }}>Pair 1</span>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.2rem', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={forfeit1}
@@ -151,21 +185,20 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
                   setForfeit1(e.target.checked);
                   if (e.target.checked) setSelectedForPair1([]);
                 }}
-                className="accent-rose-500"
               />
               <span>Forfeit (-1 HP)</span>
             </label>
           </div>
-          <div className="text-lg font-bold text-center py-1 bg-slate-900 rounded border border-slate-800">
+          <div style={{ fontSize: '1rem', fontWeight: 800, textAlign: 'center', padding: '0.4rem', backgroundColor: '#1e293b', borderRadius: '6px', color: '#f8fafc' }}>
             {forfeit1 ? '❌ Forfeited' : sum1 !== null ? `Sum: ${sum1}` : 'Select 2 Dice'}
           </div>
         </div>
 
         {/* Pair 2 */}
-        <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/50 flex flex-col justify-between space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-emerald-400 font-semibold">Pair 2</span>
-            <label className="text-xs text-slate-400 flex items-center space-x-1 cursor-pointer">
+        <div style={{ backgroundColor: '#0f172a', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#34d399', fontWeight: 700 }}>Pair 2</span>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.2rem', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={forfeit2}
@@ -173,28 +206,24 @@ export const DicePairSelector: React.FC<DicePairSelectorProps> = ({
                   setForfeit2(e.target.checked);
                   if (e.target.checked) setSelectedForPair2([]);
                 }}
-                className="accent-rose-500"
               />
               <span>Forfeit (-1 HP)</span>
             </label>
           </div>
-          <div className="text-lg font-bold text-center py-1 bg-slate-900 rounded border border-slate-800">
+          <div style={{ fontSize: '1rem', fontWeight: 800, textAlign: 'center', padding: '0.4rem', backgroundColor: '#1e293b', borderRadius: '6px', color: '#f8fafc' }}>
             {forfeit2 ? '❌ Forfeited' : sum2 !== null ? `Sum: ${sum2}` : 'Select 2 Dice'}
           </div>
         </div>
       </div>
 
-      <button
+      <Button
+        variant="gold"
+        fullWidth
         disabled={!isValid || disabled}
         onClick={handleSubmit}
-        className={`w-full py-3 rounded-xl font-bold text-center transition-all ${
-          isValid && !disabled
-            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20'
-            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-        }`}
       >
         Submit Pair Selections
-      </button>
+      </Button>
     </div>
   );
 };

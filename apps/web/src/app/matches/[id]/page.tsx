@@ -182,6 +182,7 @@ export default function MatchPage() {
             }
           }}
           players={match.players}
+          events={events}
         />
       </div>
     );
