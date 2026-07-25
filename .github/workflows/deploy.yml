@@ -10,10 +10,6 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  REGISTRY: us-central1-docker.pkg.dev
-  REPOSITORY: ${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo
-
 jobs:
   # ──────────────────────────────────────────────
   # Build Docker images and push to Artifact Registry
@@ -24,6 +20,11 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Required for Workload Identity Federation
+
+    env:
+      REGISTRY: us-central1-docker.pkg.dev
+      API_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/api
+      WEB_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/web
 
     steps:
       - name: Checkout code
@@ -42,44 +43,39 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
 
-      - name: Set image tags
+      - name: Set short SHA tag
         id: tags
         run: |
-          SHA="${{ github.sha }}"
-          SHORT_SHA="${SHA:0:7}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
           echo "sha_tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "api_image=${{ env.REGISTRY }}/${{ env.REPOSITORY }}/api" >> "$GITHUB_OUTPUT"
-          echo "web_image=${{ env.REGISTRY }}/${{ env.REPOSITORY }}/web" >> "$GITHUB_OUTPUT"
 
       - name: Build API image
         run: |
           docker build \
-            -t ${{ steps.tags.outputs.api_image }}:${{ steps.tags.outputs.sha_tag }} \
-            -t ${{ steps.tags.outputs.api_image }}:latest \
+            -t ${{ env.API_IMAGE }}:${{ steps.tags.outputs.sha_tag }} \
+            -t ${{ env.API_IMAGE }}:latest \
             -f apps/api/Dockerfile .
 
       - name: Build Web image
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ${{ steps.tags.outputs.web_image }}:${{ steps.tags.outputs.sha_tag }} \
-            -t ${{ steps.tags.outputs.web_image }}:latest \
+            -t ${{ env.WEB_IMAGE }}:${{ steps.tags.outputs.sha_tag }} \
+            -t ${{ env.WEB_IMAGE }}:latest \
             -f apps/web/Dockerfile .
 
       - name: Push API image
         run: |
-          docker push ${{ steps.tags.outputs.api_image }}:${{ steps.tags.outputs.sha_tag }}
-          docker push ${{ steps.tags.outputs.api_image }}:latest
+          docker push ${{ env.API_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
+          docker push ${{ env.API_IMAGE }}:latest
 
       - name: Push Web image
         run: |
-          docker push ${{ steps.tags.outputs.web_image }}:${{ steps.tags.outputs.sha_tag }}
-          docker push ${{ steps.tags.outputs.web_image }}:latest
+          docker push ${{ env.WEB_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
+          docker push ${{ env.WEB_IMAGE }}:latest
 
     outputs:
       sha_tag: ${{ steps.tags.outputs.sha_tag }}
-      api_image: ${{ steps.tags.outputs.api_image }}
-      web_image: ${{ steps.tags.outputs.web_image }}
 
   # ──────────────────────────────────────────────
   # Deploy API to Cloud Run
@@ -98,13 +94,14 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
 
       - name: Deploy API to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: boardgametime-api
           region: ${{ secrets.GCP_REGION }}
-          image: ${{ needs.build-and-push.outputs.api_image }}:${{ needs.build-and-push.outputs.sha_tag }}
+          image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/api:${{ needs.build-and-push.outputs.sha_tag }}
 
       - name: Verify API deployment
         run: |
@@ -127,13 +124,14 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
 
       - name: Deploy Web to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: boardgametime-web
           region: ${{ secrets.GCP_REGION }}
-          image: ${{ needs.build-and-push.outputs.web_image }}:${{ needs.build-and-push.outputs.sha_tag }}
+          image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/web:${{ needs.build-and-push.outputs.sha_tag }}
 
       - name: Verify Web deployment
         run: |
