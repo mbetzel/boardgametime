@@ -12,6 +12,7 @@ model User {
   email         String        @unique
   passwordHash  String?
   avatarUrl     String?
+  role          String        @default("USER")
   gameTurnReminders   Boolean       @default(true)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt

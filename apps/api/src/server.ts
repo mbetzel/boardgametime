@@ -6,6 +6,7 @@ import path from 'path';
 import { authRoutes } from './routes/authRoutes';
 import { lobbyRoutes } from './routes/lobbyRoutes';
 import { matchRoutes } from './routes/matchRoutes';
+import { adminRoutes } from './routes/adminRoutes';
 import { initSocketServer } from './sockets/socketServer';
 
 dotenv.config();
@@ -72,6 +73,7 @@ export function buildApp(): FastifyInstance {
   fastify.register(authRoutes, { prefix: '/api/auth' });
   fastify.register(lobbyRoutes, { prefix: '/api/lobbies' });
   fastify.register(matchRoutes, { prefix: '/api/matches' });
+  fastify.register(adminRoutes, { prefix: '/api/admin' });
 
   return fastify;
 }

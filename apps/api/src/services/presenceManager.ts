@@ -92,6 +92,11 @@ export class PresenceManager {
     return Boolean(sockets && sockets.size > 0);
   }
 
+  // Get count of unique connected active users
+  public getConnectedUserCount(): number {
+    return this.userSockets.size;
+  }
+
   // Check if user is actively in the match room
   public isUserActiveInMatch(userId: string, matchId: string): boolean {
     const playerMap = this.matchSockets.get(matchId);
