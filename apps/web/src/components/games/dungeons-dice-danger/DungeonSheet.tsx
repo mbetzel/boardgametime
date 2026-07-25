@@ -9,13 +9,6 @@ interface DungeonSheetProps {
   disabled?: boolean;
 }
 
-const mapImageUrls: Record<string, string> = {
-  'annoyed-animals': '/images/maps/annoyed-animals.jpg',
-  'clumsy-cultists': '/images/maps/clumsy-cultists.jpg',
-  'puzzled-pyramid': '/images/maps/puzzled-pyramid.jpg',
-  'defiant-dinosaurs': '/images/maps/defiant-dinosaurs.jpg',
-};
-
 export const DungeonSheet: React.FC<DungeonSheetProps> = ({
   mapDef,
   playerState,
@@ -23,14 +16,22 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
   selectedCellId,
   disabled = false,
 }) => {
-  const [viewMode, setViewMode] = useState<'GRAPH' | 'IMAGE'>('GRAPH');
+  const [hoveredCellId, setHoveredCellId] = useState<string | null>(null);
+  const [showBgArt, setShowBgArt] = useState<boolean>(false);
+
   const cellsList = Object.values(mapDef.cells);
   const maxRow = Math.max(...cellsList.map((c) => c.row), 5);
   const maxCol = Math.max(...cellsList.map((c) => c.col), 5);
 
+  const mapImageUrls: Record<string, string> = {
+    'annoyed-animals': '/images/maps/annoyed-animals.jpg',
+    'clumsy-cultists': '/images/maps/clumsy-cultists.jpg',
+    'puzzled-pyramid': '/images/maps/puzzled-pyramid.jpg',
+    'defiant-dinosaurs': '/images/maps/defiant-dinosaurs.jpg',
+  };
   const mapImageUrl = mapImageUrls[mapDef.id] || '/images/maps/annoyed-animals.jpg';
 
-  // Calculate percentage coordinates for nodes in abstract graph
+  // Calculate percentage coordinates for nodes in organic square graph
   const getNodeCoords = (cell: MapCell) => {
     const cAny = cell as any;
     const x = cAny.x !== undefined ? cAny.x : (cell.col / (maxCol + 1)) * 82 + 9;
@@ -67,74 +68,96 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
   return (
     <div
       style={{
-        backgroundColor: '#0f172a',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
-        borderRadius: '16px',
-        padding: '1.25rem',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+        backgroundColor: '#0a0f1d',
+        border: '1px solid rgba(245, 158, 11, 0.35)',
+        borderRadius: '20px',
+        padding: '1.5rem',
+        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(245, 158, 11, 0.05)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1rem',
+        gap: '1.25rem',
         width: '100%',
       }}
     >
       {/* Header Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.5rem' }}>🗺️</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+            }}
+          >
+            🏰
+          </div>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-              Map: {mapDef.name}
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
+              {mapDef.name}
             </h2>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Difficulty: {mapDef.difficulty} • {cellsList.length} Rooms
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(245, 158, 11, 0.12)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                {mapDef.difficulty} Realm
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>
+                • {cellsList.length} Connected Rooms
+              </span>
+            </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* View Mode Toggle Button */}
+          {/* Optional Background Art Toggle */}
           <button
             type="button"
-            onClick={() => setViewMode(viewMode === 'GRAPH' ? 'IMAGE' : 'GRAPH')}
+            onClick={() => setShowBgArt(!showBgArt)}
             style={{
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
+              backgroundColor: showBgArt ? 'rgba(245, 158, 11, 0.2)' : '#1e293b',
+              border: showBgArt ? '1px solid #f59e0b' : '1px solid #334155',
               borderRadius: '8px',
-              padding: '0.35rem 0.75rem',
+              padding: '0.45rem 0.85rem',
               fontSize: '0.75rem',
               fontWeight: 700,
-              color: '#f59e0b',
+              color: showBgArt ? '#f59e0b' : '#94a3b8',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
+              gap: '0.4rem',
+              transition: 'all 0.2s',
             }}
           >
-            {viewMode === 'GRAPH' ? '🖼️ View Map Artwork Overlay' : '🕸️ View Abstract Room Graph'}
+            <span>🎨</span>
+            <span>{showBgArt ? 'Hide Background Art' : 'Show Background Art'}</span>
           </button>
 
-          <div style={{ fontSize: '0.85rem', color: '#94a3b8', background: '#1e293b', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            Visited: <strong style={{ color: '#34d399' }}>{playerState.visitedCellIds.length}</strong> / {cellsList.length} rooms
+          <div style={{ fontSize: '0.85rem', color: '#cbd5e1', background: '#1e293b', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', fontWeight: 600 }}>
+            Progress: <strong style={{ color: '#10b981' }}>{playerState.visitedCellIds.length}</strong> / {cellsList.length} Rooms Marked
           </div>
         </div>
       </div>
 
-      {/* Main Dungeon Canvas */}
+      {/* Main Dungeon Organic Square Tile Graph Canvas */}
       <div
         style={{
           position: 'relative',
           width: '100%',
           aspectRatio: '1.45 / 1',
-          borderRadius: '12px',
+          borderRadius: '16px',
           overflow: 'hidden',
-          border: '2px solid rgba(245, 158, 11, 0.4)',
-          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.6)',
-          backgroundColor: '#090d16',
+          border: '2px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: 'inset 0 0 40px rgba(0, 0, 0, 0.8)',
+          backgroundColor: '#060a12',
+          backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.4) 0%, rgba(6, 10, 18, 0.95) 100%)',
         }}
       >
-        {/* Background Image if in IMAGE mode */}
-        {viewMode === 'IMAGE' && (
+        {/* Optional Subdue Map Background Artwork */}
+        {showBgArt && (
           <img
             src={mapImageUrl}
             alt={`${mapDef.name} Map Art`}
@@ -144,12 +167,24 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              opacity: 0.85,
+              opacity: 0.22,
+              filter: 'contrast(1.1) saturate(0.8)',
             }}
           />
         )}
 
-        {/* SVG Connection Edges Layer */}
+        {/* Subtle Dungeon Floor Grid Texture */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* SVG Organic Connection Pathway Lines */}
         <svg
           style={{
             position: 'absolute',
@@ -166,6 +201,19 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
             const isFromVisited = playerState.visitedCellIds.includes(edge.fromId);
             const isToVisited = playerState.visitedCellIds.includes(edge.toId);
             const isVisitedPath = isFromVisited && isToVisited;
+            const isHoveredPath = hoveredCellId === edge.fromId || hoveredCellId === edge.toId;
+            const isSelectedPath = selectedCellId === edge.fromId || selectedCellId === edge.toId;
+
+            let strokeColor = 'rgba(148, 163, 184, 0.25)';
+            let strokeWidth = '0.4';
+
+            if (isVisitedPath) {
+              strokeColor = '#10b981';
+              strokeWidth = '0.7';
+            } else if (isHoveredPath || isSelectedPath) {
+              strokeColor = '#fbbf24';
+              strokeWidth = '0.7';
+            }
 
             return (
               <line
@@ -174,52 +222,70 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                 y1={edge.y1}
                 x2={edge.x2}
                 y2={edge.y2}
-                stroke={isVisitedPath ? '#10b981' : viewMode === 'GRAPH' ? 'rgba(245, 158, 11, 0.35)' : 'rgba(255, 255, 255, 0.25)'}
-                strokeWidth={isVisitedPath ? '0.7' : '0.4'}
-                strokeDasharray={isVisitedPath ? 'none' : '0.8,0.8'}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                style={{
+                  transition: 'stroke 0.2s, stroke-width 0.2s',
+                  filter: isHoveredPath || isSelectedPath ? 'drop-shadow(0 0 4px #fbbf24)' : isVisitedPath ? 'drop-shadow(0 0 3px #10b981)' : 'none',
+                }}
               />
             );
           })}
         </svg>
 
-        {/* Interactive Room Nodes Layer */}
+        {/* Interactive Organic Square Room Tiles Layer */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
           {cellsList.map((cell) => {
             const isVisited = playerState.visitedCellIds.includes(cell.id);
             const isSelected = selectedCellId === cell.id;
+            const isHovered = hoveredCellId === cell.id;
             const coords = getNodeCoords(cell);
 
-            let bgColor = 'rgba(30, 41, 59, 0.9)';
+            // Styling defaults (Regular Rooms - Stone Gray Tile)
+            let background = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
             let borderColor = '#475569';
             let textColor = '#f8fafc';
-            let iconText = '';
+            let subIcon = '';
+            let boxShadow = '0 4px 10px rgba(0, 0, 0, 0.6)';
 
             if (cell.type === 'START') {
-              bgColor = 'rgba(16, 185, 129, 0.9)';
-              borderColor = '#10b981';
+              background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+              borderColor = '#34d399';
               textColor = '#ffffff';
-              iconText = '🟩';
+              boxShadow = '0 4px 14px rgba(16, 185, 129, 0.35)';
             } else if (cell.type === 'GRAY_ACTIVATION') {
-              bgColor = 'rgba(100, 116, 139, 0.9)';
+              background = 'linear-gradient(135deg, #334155 0%, #1e293b 100%)';
               borderColor = '#94a3b8';
-              textColor = '#ffffff';
-              iconText = '🔘';
+              textColor = '#f3f4f6';
+              subIcon = '⭐';
+              boxShadow = '0 4px 12px rgba(148, 163, 184, 0.25)';
             } else if (cell.type === 'CHEST') {
-              bgColor = 'rgba(245, 158, 11, 0.9)';
-              borderColor = '#f59e0b';
-              textColor = '#0f172a';
-              iconText = '📦';
-            } else if (cell.type === 'MONSTER') {
-              bgColor = 'rgba(239, 68, 68, 0.9)';
-              borderColor = '#ef4444';
+              background = 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)';
+              borderColor = '#fde68a';
               textColor = '#ffffff';
-              iconText = '🐉';
+              subIcon = '📦';
+              boxShadow = '0 4px 16px rgba(245, 158, 11, 0.4)';
+            } else if (cell.type === 'MONSTER') {
+              background = 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)';
+              borderColor = '#fca5a5';
+              textColor = '#ffffff';
+              subIcon = '⚔️';
+              boxShadow = '0 4px 16px rgba(239, 68, 68, 0.45)';
             }
 
             if (isVisited) {
-              bgColor = 'rgba(16, 185, 129, 0.95)';
+              background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
               borderColor = '#34d399';
               textColor = '#ffffff';
+              boxShadow = '0 0 15px rgba(16, 185, 129, 0.6)';
+            }
+
+            if (isSelected) {
+              borderColor = '#fbbf24';
+              boxShadow = '0 0 22px rgba(251, 191, 36, 1), inset 0 0 10px rgba(251, 191, 36, 0.4)';
+            } else if (isHovered && !isVisited) {
+              borderColor = '#fde68a';
+              boxShadow = '0 0 18px rgba(251, 191, 36, 0.75)';
             }
 
             return (
@@ -228,46 +294,45 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                 type="button"
                 disabled={disabled || isVisited}
                 onClick={() => onSelectCell && onSelectCell(cell.id)}
+                onMouseEnter={() => setHoveredCellId(cell.id)}
+                onMouseLeave={() => setHoveredCellId(null)}
                 style={{
                   position: 'absolute',
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,
-                  transform: 'translate(-50%, -50%)',
+                  transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.18)' : 'scale(1)'}`,
                   width: '42px',
                   height: '42px',
-                  borderRadius: cell.type === 'START' ? '8px' : '50%',
-                  backgroundColor: bgColor,
-                  border: isSelected ? '3px solid #fbbf24' : `2px solid ${borderColor}`,
-                  boxShadow: isSelected
-                    ? '0 0 20px rgba(251, 191, 36, 1), 0 0 10px rgba(251, 191, 36, 0.8)'
-                    : isVisited
-                    ? '0 0 10px rgba(16, 185, 129, 0.5)'
-                    : '0 4px 10px rgba(0, 0, 0, 0.5)',
+                  borderRadius: '8px', // Square tile design as requested by user
+                  background: background,
+                  border: isSelected ? '2.5px solid #fbbf24' : `2px solid ${borderColor}`,
+                  boxShadow: boxShadow,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: !isVisited && !disabled ? 'pointer' : 'default',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  zIndex: isSelected ? 20 : 10,
-                  opacity: disabled ? 0.7 : 1,
+                  transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: isSelected ? 30 : isHovered ? 25 : isVisited ? 15 : 10,
+                  opacity: disabled ? 0.6 : 1,
+                  padding: '2px',
+                  userSelect: 'none',
                 }}
-                title={`${cell.label || cell.type} (Val: ${cell.value ?? '—'})`}
+                title={`${cell.label || cell.type} (Target Sum: ${cell.value ?? '—'})`}
               >
                 {isVisited ? (
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>✓</span>
+                  <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>✓</span>
                 ) : (
-                  <>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 900, fontFamily: 'monospace', color: textColor, lineHeight: 1 }}>
-                      {cell.value ?? (iconText || '—')}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', pointerEvents: 'none' }}>
+                    <span style={{ fontSize: subIcon ? '0.9rem' : '1.1rem', fontWeight: 900, fontFamily: "'Inter', monospace, sans-serif", color: textColor, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
+                      {cell.value ?? (cell.type === 'START' ? 'S' : '—')}
                     </span>
-                    {cell.type === 'CHEST' && (
-                      <span style={{ fontSize: '0.6rem', lineHeight: 1, marginTop: '1px' }}>📦</span>
+                    {subIcon && (
+                      <span style={{ fontSize: '0.55rem', lineHeight: 1, marginTop: '2px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}>
+                        {subIcon}
+                      </span>
                     )}
-                    {cell.type === 'MONSTER' && (
-                      <span style={{ fontSize: '0.6rem', lineHeight: 1, marginTop: '1px' }}>🐉</span>
-                    )}
-                  </>
+                  </div>
                 )}
               </button>
             );
@@ -275,26 +340,30 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
         </div>
       </div>
 
-      {/* Map Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#94a3b8', background: '#1e293b', padding: '0.6rem 1rem', borderRadius: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#10b981' }} />
-          <span>Start Room</span>
+      {/* Map Legend Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.75rem', flexWrap: 'wrap', fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1', background: '#131c31', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: '1px solid #34d399', boxShadow: '0 2px 5px rgba(16, 185, 129, 0.3)' }} />
+          <span>Start Room (Green)</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#475569', border: '1px solid #94a3b8' }} />
-          <span>Regular / Gray Room</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: '1px solid #64748b' }} />
+          <span>Regular Room</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', border: '1px solid #94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>⭐</div>
+          <span>Gray Star Activation</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>📦</div>
           <span>Treasure Chest</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-          <span>Monster Room</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)', border: '1px solid #fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>⚔️</div>
+          <span>Monster Box</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px' }}>✓</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: '#059669', border: '1px solid #34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 900 }}>✓</div>
           <span>Visited</span>
         </div>
       </div>
