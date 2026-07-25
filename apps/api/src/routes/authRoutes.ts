@@ -36,6 +36,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       username: user.username,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      role: (user.role as any) || 'USER',
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       authProvider: 'credentials',
@@ -46,6 +47,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: user.id,
       email: user.email,
       username: user.username,
+      role: (user.role as any) || 'USER',
     });
 
     const response: AuthResponse = {
@@ -87,6 +89,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       username: user.username,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      role: (user.role as any) || 'USER',
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       authProvider: 'credentials',
@@ -97,6 +100,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: user.id,
       email: user.email,
       username: user.username,
+      role: (user.role as any) || 'USER',
     });
 
     const response: AuthResponse = {
@@ -129,6 +133,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
+        role: (user.role as any) || 'USER',
         gameTurnReminders: user.gameTurnReminders,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
@@ -241,6 +246,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       username: updatedUser.username,
       email: updatedUser.email,
       avatarUrl: updatedUser.avatarUrl,
+      role: (updatedUser.role as any) || 'USER',
       createdAt: updatedUser.createdAt.toISOString(),
       updatedAt: updatedUser.updatedAt.toISOString(),
       authProvider: updatedUser.passwordHash ? 'credentials' : 'google',

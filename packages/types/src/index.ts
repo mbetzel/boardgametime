@@ -1,4 +1,6 @@
 // User & Auth DTOs & Payloads
+export type UserRole = 'USER' | 'ADMIN';
+
 export interface EmailPreferencesDTO {
   gameTurnReminders: boolean;
   matchUpdates: boolean;
@@ -10,6 +12,7 @@ export interface UserDTO {
   username: string;
   email: string;
   avatarUrl?: string | null;
+  role?: UserRole;
   gameTurnReminders?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -54,8 +57,34 @@ export interface JwtPayload {
   sub: string;
   email: string;
   username: string;
+  role?: UserRole;
   iat?: number;
   exp?: number;
+}
+
+export interface SystemHealthDTO {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  uptimeSeconds: number;
+  memoryUsageMb: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+  };
+  databaseStatus: 'connected' | 'disconnected';
+  databaseLatencyMs: number;
+  timestamp: string;
+}
+
+export interface AdminStatsDTO {
+  activeGames: number;
+  completedGames: number;
+  abandonedGames: number;
+  totalUserAccounts: number;
+  activeUsers: number;
+  totalLobbies: number;
+  waitingLobbies: number;
+  totalMatchEvents: number;
+  systemHealth: SystemHealthDTO;
 }
 
 // Lobby DTOs & Payloads

@@ -141,6 +141,32 @@ export function UserMenu({ user, onSignOut }: UserMenuProps) {
           }}
         >
           <div style={{ padding: '0.35rem 0' }}>
+            {user.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                role="menuitem"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.7rem 1rem',
+                  color: '#f59e0b',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.15)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Admin Dashboard
+              </Link>
+            )}
+
             <Link
               href="/profile"
               onClick={() => setIsOpen(false)}
@@ -154,6 +180,7 @@ export function UserMenu({ user, onSignOut }: UserMenuProps) {
                 textDecoration: 'none',
                 fontSize: '0.9rem',
                 fontWeight: 500,
+                borderTop: user.role === 'ADMIN' ? '1px solid rgba(245, 158, 11, 0.2)' : 'none',
                 transition: 'background-color 0.15s ease',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.12)')}
