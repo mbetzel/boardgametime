@@ -14,6 +14,7 @@ import {
   MatchDTO,
   SubmitActionRequest,
   MatchEventDTO,
+  AdminStatsDTO,
 } from '@boardgametime/types';
 
 const getRawApiBaseUrl = (): string => {
@@ -232,4 +233,9 @@ export async function submitAction(id: string, data: SubmitActionRequest): Promi
 
 export async function getMatchEvents(id: string): Promise<MatchEventDTO[]> {
   return fetchApi<MatchEventDTO[]>(`/api/matches/${id}/events`);
+}
+
+// Admin API
+export async function getAdminStats(): Promise<AdminStatsDTO> {
+  return fetchApi<AdminStatsDTO>('/api/admin/stats');
 }
