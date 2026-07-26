@@ -14,9 +14,11 @@ The BoardGameTime GCP infrastructure consists of the following components:
 - **Cloud SQL PostgreSQL 16 (`boardgametime-db`)**: Managed PostgreSQL 16 database instance provisioned with private IP only.
 - **Cloud Memorystore Redis (`boardgametime-redis`)**: Managed Redis 7 instance for fast caching, session storage, and pub/sub.
 - **Artifact Registry Repository (`boardgametime-repo`)**: Centralized Docker repository (`us-central1-docker.pkg.dev`) storing container images.
+- **Google Cloud CDN & Global External Load Balancer**: Edge caching network fronting Next.js client static assets (`/_next/static/*`) with immutable cache headers via a Serverless NEG (`boardgametime-web-neg`).
 - **Cloud Run v2 Services**:
   - `boardgametime-api`: Production Fastify API server & Socket.IO websocket engine.
   - `boardgametime-web`: Production Next.js 14 web application frontend.
+
 
 ---
 

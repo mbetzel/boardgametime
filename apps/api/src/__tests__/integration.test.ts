@@ -410,4 +410,70 @@ describe('API Integration Workflows', () => {
 
     expect(eventsRes.statusCode).toBe(403);
   });
+
+  it('8. Lobby Cancellation - POST /api/lobbies/:id/cancel', async () => {
+    const cancelLobbyId = 'lby-to-cancel-01';
+    const mockWaitingLobby = {
+      id: cancelLobbyId,
+      code: 'CANCEL1',
+      gameId: 'kingdoms',
+      hostId: userId || 'usr-alice-123',
+      mode: 'REALTIME',
+      visibility: 'PUBLIC',
+      status: 'WAITING',
+      minPlayers: 2,
+      maxPlayers: 4,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      players: [
+        {
+          id: 'lp-cancel-1',
+          lobbyId: cancelLobbyId,
+          userId: userId || 'usr-alice-123',
+          isReady: true,
+          joinedAt: new Date(),
+          user: { id: userId || 'usr-alice-123', username: 'integration_alice', avatarUrl: null },
+        },
+      ],
+    };
+
+    const mockCancelledLobby = { ...mockWaitingLobby, status: 'CANCELLED' };
+
+    // Scenario 1: Non-host attempt -> 403
+    const nonHostLobby = { ...mockWaitingLobby, hostId: 'usr-someone-else' };
+    vi.spyOn(prisma.lobby, 'findUnique').mockResolvedValueOnce(nonHostLobby as any);
+
+    const nonHostRes = await app.inject({
+      method: 'POST',
+      url: `/api/lobbies/${cancelLobbyId}/cancel`,
+      headers: { authorization: `Bearer ${userToken}` },
+    });
+    expect(nonHostRes.statusCode).toBe(403);
+
+    // Scenario 2: Cancelling non-WAITING lobby -> 400
+    const inGameLobby = { ...mockWaitingLobby, status: 'IN_GAME' };
+    vi.spyOn(prisma.lobby, 'findUnique').mockResolvedValueOnce(inGameLobby as any);
+
+    const inGameRes = await app.inject({
+      method: 'POST',
+      url: `/api/lobbies/${cancelLobbyId}/cancel`,
+      headers: { authorization: `Bearer ${userToken}` },
+    });
+    expect(inGameRes.statusCode).toBe(400);
+
+    // Scenario 3: Host successfully cancels WAITING lobby -> 200
+    vi.spyOn(prisma.lobby, 'findUnique').mockResolvedValueOnce(mockWaitingLobby as any);
+    vi.spyOn(prisma.lobby, 'update').mockResolvedValueOnce(mockCancelledLobby as any);
+
+    const successRes = await app.inject({
+      method: 'POST',
+      url: `/api/lobbies/${cancelLobbyId}/cancel`,
+      headers: { authorization: `Bearer ${userToken}` },
+    });
+    expect(successRes.statusCode).toBe(200);
+    const body = JSON.parse(successRes.body);
+    expect(body.id).toBe(cancelLobbyId);
+    expect(body.status).toBe('CANCELLED');
+  });
 });
+

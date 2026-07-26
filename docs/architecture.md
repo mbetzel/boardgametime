@@ -69,6 +69,8 @@ flowchart TB
     %% ==========================================
     subgraph InfraTier["☁️ GCP Cloud Infrastructure (infra/terraform)"]
         direction TB
+        CloudCDN["Google Cloud CDN & Global Load Balancer"]
+        ServerlessNEG["Serverless Network Endpoint Group (NEG)"]
         VPC["Google VPC Network (boardgametime-vpc)"]
         VPCConn["Serverless VPC Access Connector"]
         CloudRunWeb["Cloud Run: boardgametime-web"]
@@ -77,6 +79,8 @@ flowchart TB
         CloudRedis["Cloud Memorystore for Redis"]
         ArtifactReg["Artifact Registry (Docker Repository)"]
 
+        CloudCDN -->|_next/static Cache & Proxy| ServerlessNEG
+        ServerlessNEG --> CloudRunWeb
         VPC --> VPCConn
         VPCConn --> CloudSQL
         VPCConn --> CloudRedis
@@ -142,7 +146,7 @@ sequenceDiagram
 | **Kingdoms Engine** | `packages/games/kingdoms` | Pure TypeScript, Vitest | Server-authoritative rules, tile placement, castle positioning, epoch scoring calculator. |
 | **Database & Persistence** | `packages/db` | Prisma ORM, PostgreSQL 16 | User accounts, lobby states, match snapshots, append-only `MatchEvent` audit/replay log. |
 | **Shared Contracts & Types** | `packages/types` | TypeScript DTOs | Shared API payloads, Socket event schemas, match state shapes. |
-| **Cloud Infrastructure** | `infra/terraform` | GCP, HashiCorp Terraform | Managed GCP deployment via Cloud Run v2, Serverless VPC Access Connector, Cloud SQL, Cloud Memorystore Redis. |
+| **Cloud Infrastructure** | `infra/terraform` | GCP, HashiCorp Terraform | Managed GCP deployment via Cloud Run v2, Google Cloud CDN & Global External Load Balancer, Serverless NEG, Serverless VPC Access Connector, Cloud SQL, Cloud Memorystore Redis. |
 
 ---
 
@@ -150,5 +154,7 @@ sequenceDiagram
 
 1. **VPC Network Isolation**: Cloud SQL PostgreSQL and Cloud Memorystore Redis are deployed with private IP addresses inside the `boardgametime-vpc` Virtual Private Cloud.
 2. **Serverless VPC Access**: Cloud Run services access database and Redis instances exclusively through the `boardgametime-vpc-conn` Serverless VPC Connector (`10.8.0.0/28`).
-3. **Stateless Authentication**: HTTP and Socket.IO connection handshakes require signed JSON Web Tokens (JWT).
-4. **Server Authoritative Architecture**: Game engine logic is executed exclusively on the server (`apps/api`); the client software only sends requested player move intent.
+3. **Edge Caching & Global Load Balancing**: Next.js client static assets (`/_next/static/*`) are served directly via Google Cloud CDN with long-term immutable caching (`max-age=31536000, immutable`), reducing Cloud Run compute latency and bandwidth load.
+4. **Stateless Authentication**: HTTP and Socket.IO connection handshakes require signed JSON Web Tokens (JWT).
+5. **Server Authoritative Architecture**: Game engine logic is executed exclusively on the server (`apps/api`); the client software only sends requested player move intent.
+

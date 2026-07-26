@@ -13,6 +13,7 @@
     "@boardgametime/types": "workspace:*",
     "@boardgametime/game-core": "workspace:*",
     "@boardgametime/game-kingdoms": "workspace:*",
+    "@boardgametime/game-dungeons-dice-danger": "workspace:*",
     "@boardgametime/db": "workspace:*",
     "fastify": "^4.26.0",
     "@fastify/cors": "^8.5.0",

@@ -2,11 +2,13 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '@boardgametime/db';
 import { SubmitActionRequest, MatchDTO, MatchEventDTO, PlayMode, MatchStatus } from '@boardgametime/types';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
+import { DungeonsDiceDangerGameEngine, DungeonsDiceDangerAction } from '@boardgametime/game-dungeons-dice-danger';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 const kingdomsEngine = new KingdomsGameEngine();
+const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
 
 function getAuthUser(request: FastifyRequest) {
   const authHeader = request.headers.authorization;
@@ -158,6 +160,19 @@ export async function matchRoutes(fastify: FastifyInstance) {
 
       try {
         const result = kingdomsEngine.applyAction(currentState, action);
+        newState = result.newState;
+      } catch (err: any) {
+        return reply.status(400).send({ message: err.message || 'Invalid game action.' });
+      }
+    } else if (match.gameId === 'dungeons-dice-danger') {
+      const action: DungeonsDiceDangerAction = {
+        type: actionType as any,
+        playerId: auth.sub,
+        ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+      } as DungeonsDiceDangerAction;
+
+      try {
+        const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
         newState = result.newState;
       } catch (err: any) {
         return reply.status(400).send({ message: err.message || 'Invalid game action.' });

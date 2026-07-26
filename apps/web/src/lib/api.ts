@@ -218,6 +218,13 @@ export async function startGame(id: string): Promise<{ matchId: string; match: M
 
 export const startLobby = startGame;
 
+export async function cancelLobby(id: string): Promise<LobbyDTO> {
+  return fetchApi<LobbyDTO>(`/api/lobbies/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 // Matches API
 export const getUserMatches = async (status?: string): Promise<MatchDTO[]> => {
   const query = status ? `?status=${status}` : '';

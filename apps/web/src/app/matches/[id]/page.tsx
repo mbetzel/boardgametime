@@ -15,6 +15,8 @@ import { getMatch, submitAction, getMatchEvents, getStoredUser, removeAuthToken 
 import { getMatchSocket } from '../../../lib/socket';
 import { MatchDTO, MatchEventDTO, UserDTO } from '@boardgametime/types';
 import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game-kingdoms';
+import { DungeonsDiceDangerGameState } from '@boardgametime/game-dungeons-dice-danger';
+import { DungeonsDiceDangerMatchView } from '../../../components/games/dungeons-dice-danger/DungeonsDiceDangerMatchView';
 
 export default function MatchPage() {
   const params = useParams();
@@ -159,6 +161,29 @@ export default function MatchPage() {
             Return to Home
           </button>
         </main>
+      </div>
+    );
+  }
+
+  if (match.gameId === 'dungeons-dice-danger') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        {renderTopBanner()}
+        <DungeonsDiceDangerMatchView
+          matchId={matchId}
+          gameState={match.stateSnapshot as DungeonsDiceDangerGameState}
+          currentUserId={currentUserId || ''}
+          onSendAction={async (actionType, actionPayload) => {
+            try {
+              const updated = await submitAction(matchId, { actionType, actionPayload });
+              updateMatchData(updated);
+            } catch (err: any) {
+              setError(err.message || 'Action failed');
+            }
+          }}
+          players={match.players}
+          events={events}
+        />
       </div>
     );
   }

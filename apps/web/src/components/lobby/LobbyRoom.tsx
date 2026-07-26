@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { toggleReady, startGame, getStoredUser } from '../../lib/api';
+import { toggleReady, startGame, cancelLobby, getStoredUser } from '../../lib/api';
 import { getLobbySocket } from '../../lib/socket';
 import { LobbyDTO, UserDTO } from '@boardgametime/types';
 
@@ -22,6 +22,7 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
 
   const currentUserId = currentUser?.id;
   const isHost = lobby.hostId === currentUserId;
+  const isCancelled = lobby.status === 'CANCELLED';
   const myPlayerSlot = lobby.players.find((p) => p.userId === currentUserId);
   const isReady = myPlayerSlot?.isReady || false;
 
@@ -77,7 +78,23 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
     }
   };
 
-  const canStart = isHost && lobby.players.length >= lobby.minPlayers;
+  const handleCancelLobby = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to cancel and shut down this lobby?')) {
+      return;
+    }
+    setLoadingAction(true);
+    setError(null);
+    try {
+      const updated = await cancelLobby(lobby.id);
+      setLobby(updated);
+    } catch (err: any) {
+      setError(err.message || 'Failed to cancel lobby');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const canStart = isHost && !isCancelled && lobby.players.length >= lobby.minPlayers;
 
   return (
     <div style={{ maxWidth: '750px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -92,6 +109,12 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
         }
         glow
       >
+        {isCancelled && (
+          <div style={{ padding: '0.85rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid #ef4444', marginBottom: '1.25rem', fontWeight: 600 }}>
+            This lobby has been cancelled and shut down by the host.
+          </div>
+        )}
+
         {error && (
           <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', marginBottom: '1rem' }}>
             {error}
@@ -101,7 +124,7 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <Badge variant={lobby.mode === 'REALTIME' ? 'gold' : 'info'}>Mode: {lobby.mode}</Badge>
           <Badge variant={lobby.visibility === 'PUBLIC' ? 'success' : 'warning'}>Visibility: {lobby.visibility}</Badge>
-          <Badge variant="neutral">Status: {lobby.status}</Badge>
+          <Badge variant={isCancelled ? 'danger' : 'neutral'}>Status: {lobby.status}</Badge>
         </div>
 
         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '0.75rem' }}>
@@ -164,23 +187,37 @@ export const LobbyRoom: React.FC<LobbyRoomProps> = ({ initialLobby }) => {
             Back to Home
           </Button>
 
-          <Button
-            variant={isReady ? 'danger' : 'gold'}
-            onClick={handleToggleReady}
-            isLoading={loadingAction}
-          >
-            {isReady ? 'Unready' : 'Ready Up'}
-          </Button>
+          {!isCancelled && (
+            <>
+              <Button
+                variant={isReady ? 'danger' : 'gold'}
+                onClick={handleToggleReady}
+                isLoading={loadingAction}
+              >
+                {isReady ? 'Unready' : 'Ready Up'}
+              </Button>
 
-          {isHost && (
-            <Button
-              variant="gold"
-              onClick={handleStartGame}
-              disabled={!canStart}
-              isLoading={loadingAction}
-            >
-              Start Game
-            </Button>
+              {isHost && (
+                <>
+                  <Button
+                    variant="danger"
+                    onClick={handleCancelLobby}
+                    isLoading={loadingAction}
+                  >
+                    Cancel Lobby
+                  </Button>
+
+                  <Button
+                    variant="gold"
+                    onClick={handleStartGame}
+                    disabled={!canStart}
+                    isLoading={loadingAction}
+                  >
+                    Start Game
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </div>
       </Card>

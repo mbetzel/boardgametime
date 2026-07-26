@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { prisma } from '@boardgametime/db';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
+import { DungeonsDiceDangerGameEngine, DungeonsDiceDangerAction } from '@boardgametime/game-dungeons-dice-danger';
 import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
 import { verifyToken } from '../services/authService';
 import { presenceManager } from '../services/presenceManager';
@@ -9,6 +10,7 @@ import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
+const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
 
 export function initSocketServer(httpServer: HttpServer): Server {
   const allowedOrigins = [
@@ -134,13 +136,29 @@ export function initSocketServer(httpServer: HttpServer): Server {
         }
 
         const currentState = match.stateSnapshot as any;
-        const action: KingdomsAction = {
-          type: actionType as any,
-          playerId: actingUserId,
-          ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
-        } as KingdomsAction;
+        let newState: any;
 
-        const { newState } = kingdomsEngine.applyAction(currentState, action);
+        if (match.gameId === 'kingdoms') {
+          const action: KingdomsAction = {
+            type: actionType as any,
+            playerId: actingUserId,
+            ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+          } as KingdomsAction;
+
+          const result = kingdomsEngine.applyAction(currentState, action);
+          newState = result.newState;
+        } else if (match.gameId === 'dungeons-dice-danger') {
+          const action: DungeonsDiceDangerAction = {
+            type: actionType as any,
+            playerId: actingUserId,
+            ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+          } as DungeonsDiceDangerAction;
+
+          const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
+          newState = result.newState;
+        } else {
+          newState = { ...currentState };
+        }
 
         // Get count of existing events
         const eventCount = await prisma.matchEvent.count({ where: { matchId } });

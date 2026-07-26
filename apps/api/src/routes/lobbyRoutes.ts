@@ -10,11 +10,13 @@ import {
   LobbyStatus,
 } from '@boardgametime/types';
 import { KingdomsGameEngine } from '@boardgametime/game-kingdoms';
+import { DungeonsDiceDangerGameEngine } from '@boardgametime/game-dungeons-dice-danger';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
 
 const kingdomsEngine = new KingdomsGameEngine();
+const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
 
 function getAuthUser(request: FastifyRequest) {
   const authHeader = request.headers.authorization;
@@ -265,6 +267,8 @@ export async function lobbyRoutes(fastify: FastifyInstance) {
 
     if (lobby.gameId === 'kingdoms') {
       initialState = kingdomsEngine.createInitialState(playerIds);
+    } else if (lobby.gameId === 'dungeons-dice-danger') {
+      initialState = dungeonsDiceDangerEngine.createInitialState(playerIds);
     } else {
       initialState = { playerIds, turnOrder: playerIds, activePlayerId: playerIds[0] };
     }
@@ -334,4 +338,50 @@ export async function lobbyRoutes(fastify: FastifyInstance) {
       },
     });
   });
+
+  // Cancel / Shut down lobby
+  fastify.post('/:id/cancel', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    let auth;
+    try {
+      auth = getAuthUser(request);
+    } catch {
+      return reply.status(401).send({ message: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+
+    const lobby = await prisma.lobby.findUnique({
+      where: { id },
+      include: { players: { include: { user: true } } },
+    });
+
+    if (!lobby) {
+      return reply.status(404).send({ message: 'Lobby not found.' });
+    }
+
+    if (lobby.hostId !== auth.sub) {
+      return reply.status(403).send({ message: 'Only host can cancel the lobby.' });
+    }
+
+    if (lobby.status !== 'WAITING') {
+      return reply.status(400).send({ message: 'Lobby cannot be cancelled in its current status.' });
+    }
+
+    const updatedLobby = await prisma.lobby.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+      include: { players: { include: { user: true } } },
+    });
+
+    const dto = mapLobbyToDTO(updatedLobby);
+
+    const io = getSocketServer();
+    if (io) {
+      io.of('/lobbies').to(id).emit('lobby_updated', dto);
+      io.of('/lobbies').emit('lobby_updated', dto);
+    }
+
+    return reply.send(dto);
+  });
 }
+
