@@ -21,6 +21,7 @@ export default function HomePage() {
   const [matches, setMatches] = useState<MatchDTO[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [matchesError, setMatchesError] = useState<string | null>(null);
+  const [myLobbies, setMyLobbies] = useState<LobbyDTO[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
 
@@ -46,6 +47,9 @@ export default function HomePage() {
       try {
         const data = await listLobbies();
         setLobbies(data.filter((l) => l.visibility === 'PUBLIC' && l.status === 'WAITING'));
+        if (currentUser) {
+          setMyLobbies(data.filter((l) => l.status === 'WAITING' && l.players.some((p) => p.userId === currentUser.id)));
+        }
       } catch (err: any) {
         setLobbiesError(err.message || 'Failed to load active game rooms');
       } finally {
@@ -69,6 +73,22 @@ export default function HomePage() {
           return prev.filter((l) => l.id !== updated.id);
         }
       });
+
+      if (currentUser) {
+        setMyLobbies((prev) => {
+          const exists = prev.some((l) => l.id === updated.id);
+          const isUserInLobby = updated.players.some((p) => p.userId === currentUser.id);
+          if (updated.status === 'WAITING' && isUserInLobby) {
+            if (exists) {
+              return prev.map((l) => (l.id === updated.id ? updated : l));
+            } else {
+              return [updated, ...prev];
+            }
+          } else {
+            return prev.filter((l) => l.id !== updated.id);
+          }
+        });
+      }
     };
 
     socket.on('lobby_updated', handleLobbyUpdated);
@@ -82,6 +102,7 @@ export default function HomePage() {
     removeAuthToken();
     setUser(null);
     setMatches([]);
+    setMyLobbies([]);
   };
 
   const handleCreateRoomClick = () => {
@@ -375,10 +396,10 @@ export default function HomePage() {
         <section>
           <div style={{ marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-              My Games (Current Games)
+              My Games (Active Games & Waiting Rooms)
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
-              Your ongoing matches in progress
+              Your ongoing matches and lobbies waiting to start
             </p>
           </div>
 
@@ -405,14 +426,14 @@ export default function HomePage() {
             <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
               {matchesError}
             </div>
-          ) : matches.length === 0 ? (
+          ) : matches.length === 0 && myLobbies.length === 0 ? (
             <Card style={{ textAlign: 'center', padding: '3rem', borderStyle: 'dashed' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚔️</div>
               <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
-                No Ongoing Matches
+                No Ongoing Matches or Waiting Lobbies
               </h4>
               <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
-                You have no active matches in progress right now. Join an active room above or create a new room!
+                You have no active matches or waiting lobbies right now. Join an active room above or create a new room!
               </p>
             </Card>
           ) : (
@@ -475,6 +496,45 @@ export default function HomePage() {
                   </Card>
                 );
               })}
+
+              {myLobbies.map((lobby) => (
+                <Card
+                  key={lobby.id}
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+                        Kingdoms (Lobby Room)
+                      </span>
+                      <Badge variant='warning' size='sm'>Waiting Room</Badge>
+                    </div>
+                  }
+                  footer={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+                        Code: <strong style={{ color: '#f59e0b' }}>{lobby.code}</strong>
+                      </span>
+                      <Link href={'/lobbies/' + lobby.id} passHref style={{ textDecoration: 'none' }}>
+                        <Button variant='outline' size='sm'>
+                          Enter Room
+                        </Button>
+                      </Link>
+                    </div>
+                  }
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.25rem 0' }}>
+                    <p style={{ fontSize: '0.875rem', color: '#cbd5e1' }}>
+                      Players Joined: <strong style={{ color: '#f8fafc' }}>{lobby.players.length} / {lobby.maxPlayers}</strong>
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {lobby.players.map((p) => (
+                        <Badge key={p.userId} variant={p.isReady ? 'success' : 'neutral'} size='sm'>
+                          {p.username} {p.isReady ? '✓ Ready' : 'Waiting'}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </section>
