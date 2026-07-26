@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "ESLINT_USE_FLAT_CONFIG=false next lint",
-    "clean": "rm -rf .next dist"
+    "clean": "rm -rf .next dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@boardgametime/game-kingdoms": "workspace:*",
