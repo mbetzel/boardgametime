@@ -8,6 +8,7 @@ import {
   PlayMode,
   LobbyVisibility,
   LobbyStatus,
+  isGameAvailable,
 } from '@boardgametime/types';
 import { KingdomsGameEngine } from '@boardgametime/game-kingdoms';
 import { DungeonsDiceDangerGameEngine } from '@boardgametime/game-dungeons-dice-danger';
@@ -89,6 +90,10 @@ export async function lobbyRoutes(fastify: FastifyInstance) {
 
     const { gameId = 'kingdoms', mode = 'REALTIME', visibility = 'PUBLIC', maxPlayers = 4, minPlayers = 2 } =
       request.body || {};
+
+    if (!isGameAvailable(gameId)) {
+      return reply.status(400).send({ message: `Game '${gameId}' is currently in beta and not available in production.` });
+    }
 
     const code = generateCode();
 

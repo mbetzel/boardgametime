@@ -7,7 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Header } from '../../../components/ui/Header';
 import { createLobby, getStoredUser } from '../../../lib/api';
-import { PlayMode, LobbyVisibility, UserDTO } from '@boardgametime/types';
+import { PlayMode, LobbyVisibility, UserDTO, isGameAvailable, GAME_DEFINITIONS } from '@boardgametime/types';
 
 export default function CreateLobbyPage() {
   const router = useRouter();
@@ -25,7 +25,10 @@ export default function CreateLobbyPage() {
 
   useEffect(() => {
     setUser(getStoredUser());
-  }, []);
+    if (!isGameAvailable(selectedGame)) {
+      setSelectedGame('kingdoms');
+    }
+  }, [selectedGame]);
 
   // Update max player options when game changes (Kingdoms defaults to 4, max 4, min 2)
   const handleGameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -166,8 +169,13 @@ export default function CreateLobbyPage() {
                   cursor: 'pointer',
                 }}
               >
-                <option value="kingdoms">Kingdoms (2-4 Players)</option>
-                <option value="dungeons-dice-danger">Dungeons, Dice & Danger (1-4 Players)</option>
+                {Object.values(GAME_DEFINITIONS)
+                  .filter((g) => isGameAvailable(g.id))
+                  .map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.minPlayers}-{g.maxPlayers} Players)
+                    </option>
+                  ))}
                 <option value="catan" disabled>
                   Catan (3-4 Players) - Coming Soon
                 </option>

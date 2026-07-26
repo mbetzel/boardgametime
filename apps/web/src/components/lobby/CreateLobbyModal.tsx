@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { createLobby } from '../../lib/api';
-import { PlayMode, LobbyVisibility, LobbyDTO } from '@boardgametime/types';
+import { PlayMode, LobbyVisibility, LobbyDTO, isGameAvailable, GAME_DEFINITIONS } from '@boardgametime/types';
 
 export interface CreateLobbyModalProps {
   isOpen: boolean;
@@ -20,15 +20,20 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
   onSuccess,
   initialGameId = 'kingdoms',
 }) => {
-  const [gameId, setGameId] = useState<string>(initialGameId);
+  const validInitialGameId = isGameAvailable(initialGameId) ? initialGameId : 'kingdoms';
+  const [gameId, setGameId] = useState<string>(validInitialGameId);
   const [mode, setMode] = useState<PlayMode>('REALTIME');
   const [visibility, setVisibility] = useState<LobbyVisibility>('PUBLIC');
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    setGameId(initialGameId);
+  useEffect(() => {
+    if (!isGameAvailable(initialGameId)) {
+      setGameId('kingdoms');
+    } else {
+      setGameId(initialGameId);
+    }
   }, [initialGameId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,12 +42,14 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
     setLoading(true);
 
     try {
+      const selectedDef = GAME_DEFINITIONS[gameId];
+      const minPlayers = selectedDef?.minPlayers ?? 2;
       const lobby = await createLobby({
         gameId,
         mode,
         visibility,
         maxPlayers,
-        minPlayers: gameId === 'dungeons-dice-danger' ? 1 : 2,
+        minPlayers,
       });
       onSuccess(lobby);
     } catch (err: any) {
@@ -51,6 +58,10 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
       setLoading(false);
     }
   };
+
+  const selectedDef = GAME_DEFINITIONS[gameId];
+  const minAllowed = selectedDef?.minPlayers ?? 2;
+  const maxAllowed = selectedDef?.maxPlayers ?? 4;
 
   return (
     <Modal
@@ -84,8 +95,9 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
             onChange={(e) => {
               const newGameId = e.target.value;
               setGameId(newGameId);
-              if (newGameId === 'kingdoms' && maxPlayers < 2) {
-                setMaxPlayers(2);
+              const def = GAME_DEFINITIONS[newGameId];
+              if (def && maxPlayers < def.minPlayers) {
+                setMaxPlayers(def.minPlayers);
               }
             }}
             style={{
@@ -100,8 +112,13 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            <option value="kingdoms">Kingdoms (Reiner Knizia)</option>
-            <option value="dungeons-dice-danger">Dungeons, Dice & Danger (Richard Garfield)</option>
+            {Object.values(GAME_DEFINITIONS)
+              .filter((g) => isGameAvailable(g.id))
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name} ({g.author})
+                </option>
+              ))}
           </select>
         </div>
 
@@ -154,12 +171,12 @@ export const CreateLobbyModal: React.FC<CreateLobbyModalProps> = ({
         </div>
 
         <Input
-          label={`Max Players (${gameId === 'dungeons-dice-danger' ? '1 - 4' : '2 - 4'})`}
+          label={`Max Players (${minAllowed} - ${maxAllowed})`}
           type="number"
-          min={gameId === 'dungeons-dice-danger' ? 1 : 2}
-          max={4}
+          min={minAllowed}
+          max={maxAllowed}
           value={maxPlayers}
-          onChange={(e) => setMaxPlayers(parseInt(e.target.value) || (gameId === 'dungeons-dice-danger' ? 1 : 2))}
+          onChange={(e) => setMaxPlayers(parseInt(e.target.value) || minAllowed)}
         />
       </form>
     </Modal>

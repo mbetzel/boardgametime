@@ -10,7 +10,7 @@ import { Header } from '../components/ui/Header';
 import { CreateLobbyModal } from '../components/lobby/CreateLobbyModal';
 import { getStoredUser, removeAuthToken, listLobbies, joinLobby, getUserMatches } from '../lib/api';
 import { getLobbySocket } from '../lib/socket';
-import { LobbyDTO, UserDTO, MatchDTO } from '@boardgametime/types';
+import { LobbyDTO, UserDTO, MatchDTO, isGameAvailable } from '@boardgametime/types';
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,6 +25,8 @@ export default function HomePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedModalGame, setSelectedModalGame] = useState<string>('kingdoms');
   const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
+
+  const showDungeonsDiceDanger = isGameAvailable('dungeons-dice-danger');
 
   useEffect(() => {
     const currentUser = getStoredUser();
@@ -107,7 +109,10 @@ export default function HomePage() {
   };
 
   const handleCreateRoomClick = (gameId?: string | React.MouseEvent) => {
-    const chosenGame = typeof gameId === 'string' ? gameId : 'kingdoms';
+    let chosenGame = typeof gameId === 'string' ? gameId : 'kingdoms';
+    if (!isGameAvailable(chosenGame)) {
+      chosenGame = 'kingdoms';
+    }
     setSelectedModalGame(chosenGame);
     if (!user) {
       router.push('/auth/login');
@@ -152,7 +157,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid-container grid-cols-3">
+          <div className={`grid-container ${showDungeonsDiceDanger ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {/* Kingdoms Game Card */}
             <Card glow style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
@@ -206,58 +211,60 @@ export default function HomePage() {
               </Button>
             </Card>
 
-            {/* Dungeons, Dice & Danger Game Card */}
-            <Card glow style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                {/* Thumbnail Artwork */}
-                <div
-                  style={{
-                    width: '100%',
-                    height: '160px',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    background: 'linear-gradient(135deg, #78350f 0%, #451a03 50%, #0f172a 100%)',
-                    border: '1px solid rgba(245, 158, 11, 0.4)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="20" y="20" width="30" height="30" rx="6" fill="#f59e0b" />
-                    <circle cx="35" cy="35" r="4" fill="#0f172a" />
-                    <rect x="52" y="38" width="30" height="30" rx="6" fill="#10b981" />
-                    <circle cx="62" cy="48" r="3" fill="#0f172a" />
-                    <circle cx="72" cy="58" r="3" fill="#0f172a" />
-                    <path d="M50 72L65 85H35L50 72Z" fill="#ef4444" />
-                  </svg>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', letterSpacing: '0.1em', marginTop: '0.25rem' }}>
-                    RICHARD GARFIELD 2022
-                  </span>
+            {/* Dungeons, Dice & Danger Game Card (Development / Beta Only) */}
+            {showDungeonsDiceDanger && (
+              <Card glow style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  {/* Thumbnail Artwork */}
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '160px',
+                      borderRadius: '8px',
+                      marginBottom: '1rem',
+                      background: 'linear-gradient(135deg, #78350f 0%, #451a03 50%, #0f172a 100%)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="20" y="20" width="30" height="30" rx="6" fill="#f59e0b" />
+                      <circle cx="35" cy="35" r="4" fill="#0f172a" />
+                      <rect x="52" y="38" width="30" height="30" rx="6" fill="#10b981" />
+                      <circle cx="62" cy="48" r="3" fill="#0f172a" />
+                      <circle cx="72" cy="58" r="3" fill="#0f172a" />
+                      <path d="M50 72L65 85H35L50 72Z" fill="#ef4444" />
+                    </svg>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', letterSpacing: '0.1em', marginTop: '0.25rem' }}>
+                      RICHARD GARFIELD 2022
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                    <Badge variant="gold" size="sm">1-4 Players (Solo Mode)</Badge>
+                    <Badge variant="info" size="sm">Roll & Write</Badge>
+                    <Badge variant="success" size="sm">Realtime & Async</Badge>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
+                    Dungeons, Dice & Danger
+                  </h3>
+
+                  <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
+                    Richard Garfield&apos;s roll-and-write dungeon crawler. Roll dice, form pairs, explore 4 distinct dungeons, fight monsters, and collect treasure.
+                  </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                  <Badge variant="gold" size="sm">1-4 Players (Solo Mode)</Badge>
-                  <Badge variant="info" size="sm">Roll & Write</Badge>
-                  <Badge variant="success" size="sm">Realtime & Async</Badge>
-                </div>
-
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>
-                  Dungeons, Dice & Danger
-                </h3>
-
-                <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.45', marginBottom: '1.25rem' }}>
-                  Richard Garfield&apos;s roll-and-write dungeon crawler. Roll dice, form pairs, explore 4 distinct dungeons, fight monsters, and collect treasure.
-                </p>
-              </div>
-
-              <Button variant="gold" fullWidth onClick={() => handleCreateRoomClick('dungeons-dice-danger')}>
-                + Create Room
-              </Button>
-            </Card>
+                <Button variant="gold" fullWidth onClick={() => handleCreateRoomClick('dungeons-dice-danger')}>
+                  + Create Room
+                </Button>
+              </Card>
+            )}
           </div>
         </section>
 

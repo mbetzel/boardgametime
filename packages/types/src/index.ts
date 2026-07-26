@@ -242,3 +242,60 @@ export interface ClientToServerEvents {
   leave_match: (matchId: string) => void;
   game_action: (data: { matchId: string; actionType: string; actionPayload: unknown }) => void;
 }
+
+// Game Status & Registry Types
+export type GameStatus = 'production' | 'beta' | 'coming_soon';
+
+export interface GameDefinition {
+  id: string;
+  name: string;
+  subtitle?: string;
+  description?: string;
+  author?: string;
+  year?: number;
+  minPlayers: number;
+  maxPlayers: number;
+  status: GameStatus;
+}
+
+export const GAME_DEFINITIONS: Record<string, GameDefinition> = {
+  kingdoms: {
+    id: 'kingdoms',
+    name: 'Kingdoms',
+    subtitle: 'REINER KNIZIA 2002',
+    description: "Reiner Knizia's classic tile placement game of strategy, territory expansion, and math calculations (Fantasy Flight Games 2002 Edition).",
+    author: 'Reiner Knizia',
+    year: 2002,
+    minPlayers: 2,
+    maxPlayers: 4,
+    status: 'production',
+  },
+  'dungeons-dice-danger': {
+    id: 'dungeons-dice-danger',
+    name: 'Dungeons, Dice & Danger',
+    subtitle: 'RICHARD GARFIELD 2022',
+    description: "Richard Garfield's roll-and-write dungeon crawler. Roll dice, form pairs, explore 4 distinct dungeons, fight monsters, and collect treasure.",
+    author: 'Richard Garfield',
+    year: 2022,
+    minPlayers: 1,
+    maxPlayers: 4,
+    status: 'beta',
+  },
+};
+
+export function isGameAvailable(
+  gameId: string,
+  isProduction: boolean = process.env.NODE_ENV === 'production'
+): boolean {
+  const game = GAME_DEFINITIONS[gameId];
+  if (!game) return false;
+  if (game.status === 'production') return true;
+  if (game.status === 'beta') {
+    const isBetaEnabled =
+      process.env.NEXT_PUBLIC_ENABLE_BETA_GAMES === 'true' ||
+      process.env.ENABLE_BETA_GAMES === 'true';
+    return !isProduction || isBetaEnabled;
+  }
+  return false;
+}
+
