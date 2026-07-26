@@ -137,27 +137,55 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         const currentState = match.stateSnapshot as any;
         let newState: any;
+        let turnStartSnapshotToSave: any = match.turnStartStateSnapshot;
 
-        if (match.gameId === 'kingdoms') {
-          const action: KingdomsAction = {
-            type: actionType as any,
-            playerId: actingUserId,
-            ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
-          } as KingdomsAction;
-
-          const result = kingdomsEngine.applyAction(currentState, action);
-          newState = result.newState;
-        } else if (match.gameId === 'dungeons-dice-danger') {
-          const action: DungeonsDiceDangerAction = {
-            type: actionType as any,
-            playerId: actingUserId,
-            ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
-          } as DungeonsDiceDangerAction;
-
-          const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
-          newState = result.newState;
+        if (actionType === 'CANCEL_TURN') {
+          if (match.turnStartStateSnapshot) {
+            if (match.gameId === 'kingdoms') {
+              const result = kingdomsEngine.applyAction(currentState, { type: 'CANCEL_TURN', playerId: actingUserId });
+              newState = result.newState;
+              if (!newState.pendingDrawnTile) {
+                turnStartSnapshotToSave = null;
+              }
+            } else if (match.gameId === 'dungeons-dice-danger') {
+              const result = dungeonsDiceDangerEngine.applyAction(currentState, { type: 'CANCEL_TURN', playerId: actingUserId });
+              newState = result.newState;
+              turnStartSnapshotToSave = null;
+            } else {
+              newState = match.turnStartStateSnapshot;
+              turnStartSnapshotToSave = null;
+            }
+          } else {
+            newState = currentState;
+          }
         } else {
-          newState = { ...currentState };
+          if (match.gameId === 'kingdoms') {
+            const action: KingdomsAction = {
+              type: actionType as any,
+              playerId: actingUserId,
+              ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+            } as KingdomsAction;
+
+            const result = kingdomsEngine.applyAction(currentState, action);
+            newState = result.newState;
+          } else if (match.gameId === 'dungeons-dice-danger') {
+            const action: DungeonsDiceDangerAction = {
+              type: actionType as any,
+              playerId: actingUserId,
+              ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+            } as DungeonsDiceDangerAction;
+
+            const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
+            newState = result.newState;
+          } else {
+            newState = { ...currentState };
+          }
+
+          if (actionType === 'CONFIRM_TURN') {
+            turnStartSnapshotToSave = null;
+          } else if (!turnStartSnapshotToSave && actionType !== 'PASS') {
+            turnStartSnapshotToSave = currentState;
+          }
         }
 
         // Get count of existing events
@@ -179,6 +207,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
             where: { id: matchId },
             data: {
               stateSnapshot: newState as any,
+              turnStartStateSnapshot: turnStartSnapshotToSave as any,
               currentTurnPlayerId: newState.activePlayerId || null,
               status: newState.isComplete ? 'COMPLETED' : 'IN_PROGRESS',
             },
@@ -196,6 +225,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
           createdAt: eventRecord.createdAt.toISOString(),
         };
 
+        const state = updatedMatch.stateSnapshot as any;
+        const hasPendingTurn = !!updatedMatch.turnStartStateSnapshot || !!state?.pendingTurnConfirmation || !!state?.pendingPlacement;
+
         const matchDto: MatchDTO = {
           id: updatedMatch.id,
           gameId: updatedMatch.gameId,
@@ -203,6 +235,8 @@ export function initSocketServer(httpServer: HttpServer): Server {
           status: updatedMatch.status as any,
           currentTurnPlayerId: updatedMatch.currentTurnPlayerId,
           stateSnapshot: updatedMatch.stateSnapshot,
+          turnStartStateSnapshot: updatedMatch.turnStartStateSnapshot || null,
+          hasPendingTurn,
           players: updatedMatch.players.map((p) => ({
             id: p.id,
             matchId: p.matchId,

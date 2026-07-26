@@ -116,4 +116,6 @@ export interface DungeonsDiceDangerGameState {
 export type DungeonsDiceDangerAction =
   | { type: 'ROLL_DICE'; playerId: string }
   | { type: 'SUBMIT_PAIRS'; playerId: string; submission: PairSubmission }
-  | { type: 'USE_TORCH'; playerId: string; targetCellId: string };
+  | { type: 'USE_TORCH'; playerId: string; targetCellId: string }
+  | { type: 'CONFIRM_TURN'; playerId: string }
+  | { type: 'CANCEL_TURN'; playerId: string };

@@ -80,13 +80,37 @@ export class KingdomsGameEngine
       return { valid: false, reason: 'Player not found in state.' };
     }
 
+    if (action.type === 'CONFIRM_TURN') {
+      if (!state.pendingTurnConfirmation && !state.pendingPlacement) {
+        return { valid: false, reason: 'No pending turn action to confirm.' };
+      }
+      return { valid: true };
+    }
+
+    if (action.type === 'CANCEL_TURN') {
+      if (!state.pendingPlacement && !state.pendingTurnConfirmation) {
+        return { valid: false, reason: 'No pending turn action to cancel.' };
+      }
+      return { valid: true };
+    }
+
     if (action.type === 'PASS') {
       const canPlaceCastle = player.availableCastles.some((c) => c.count > 0) && this.hasEmptyCell(state.board);
-      const canDrawTile = state.drawPile.length > 0 && this.hasEmptyCell(state.board);
+      const canDrawTile = (state.drawPile.length > 0 || !!state.pendingDrawnTile) && this.hasEmptyCell(state.board);
       const canPlaceSecret = player.secretTile !== null && this.hasEmptyCell(state.board);
 
       if (canPlaceCastle || canDrawTile || canPlaceSecret) {
         return { valid: false, reason: 'Passing is allowed ONLY if no legal action can be taken.' };
+      }
+      return { valid: true };
+    }
+
+    if (action.type === 'DRAW_TILE') {
+      if (state.pendingDrawnTile) {
+        return { valid: true }; // Already drawn
+      }
+      if (state.drawPile.length === 0) {
+        return { valid: false, reason: 'Draw pile is empty.' };
       }
       return { valid: true };
     }
@@ -108,8 +132,8 @@ export class KingdomsGameEngine
       return { valid: true };
     }
 
-    if (action.type === 'DRAW_AND_PLACE_TILE') {
-      if (state.drawPile.length === 0) {
+    if (action.type === 'DRAW_AND_PLACE_TILE' || action.type === 'PLACE_DRAWN_TILE') {
+      if (!state.pendingDrawnTile && state.drawPile.length === 0) {
         return { valid: false, reason: 'Draw pile is empty.' };
       }
       return { valid: true };
@@ -140,7 +164,94 @@ export class KingdomsGameEngine
     const events: unknown[] = [];
     const player = newState.players[action.playerId];
 
+    if (action.type === 'CANCEL_TURN') {
+      if (newState.pendingPlacement) {
+        const { row, col, actionType, rank, tile } = newState.pendingPlacement;
+        // Reset board cell
+        newState.board[row][col] = { type: 'EMPTY' };
+
+        if (actionType === 'PLACE_CASTLE' && rank) {
+          const castleSlot = player.availableCastles.find((c) => c.rank === rank);
+          if (castleSlot) castleSlot.count += 1;
+        } else if (actionType === 'PLACE_SECRET_TILE' && tile) {
+          player.secretTile = tile;
+        }
+        // Note: For drawn tile, pendingDrawnTile remains in newState.pendingDrawnTile!
+        newState.pendingPlacement = null;
+        newState.pendingTurnConfirmation = false;
+      }
+      return { newState, events };
+    }
+
+    if (action.type === 'CONFIRM_TURN') {
+      if (newState.pendingPlacement) {
+        const p = newState.pendingPlacement;
+        if (p.actionType === 'PLACE_CASTLE') {
+          events.push({
+            type: 'CASTLE_PLACED',
+            playerId: action.playerId,
+            rank: p.rank,
+            row: p.row,
+            col: p.col,
+          });
+        } else if (p.actionType === 'DRAW_AND_PLACE_TILE' || p.actionType === 'PLACE_DRAWN_TILE') {
+          events.push({
+            type: 'TILE_DRAWN_AND_PLACED',
+            playerId: action.playerId,
+            tile: p.tile,
+            row: p.row,
+            col: p.col,
+          });
+        } else if (p.actionType === 'PLACE_SECRET_TILE') {
+          events.push({
+            type: 'SECRET_TILE_PLACED',
+            playerId: action.playerId,
+            tile: p.tile,
+            row: p.row,
+            col: p.col,
+          });
+        }
+      }
+
+      newState.pendingPlacement = null;
+      newState.pendingDrawnTile = null;
+      newState.pendingTurnConfirmation = false;
+
+      // Check if board is full or no moves remain
+      const isBoardFull = !this.hasEmptyCell(newState.board);
+
+      if (isBoardFull) {
+        this.handleEpochEnd(newState, events, seedRandom);
+      } else {
+        // Advance to next active player
+        const currentIndex = newState.turnOrder.indexOf(newState.activePlayerId);
+        const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
+        newState.activePlayerId = newState.turnOrder[nextIndex];
+      }
+
+      return { newState, events };
+    }
+
+    if (action.type === 'DRAW_TILE') {
+      if (!newState.pendingDrawnTile) {
+        newState.pendingDrawnTile = newState.drawPile.pop()!;
+      }
+      return { newState, events };
+    }
+
     if (action.type === 'PLACE_CASTLE') {
+      // If there was a previous unconfirmed placement in the same turn, revert it first
+      if (newState.pendingPlacement) {
+        const { row, col, actionType, rank: prevRank, tile: prevTile } = newState.pendingPlacement;
+        newState.board[row][col] = { type: 'EMPTY' };
+        if (actionType === 'PLACE_CASTLE' && prevRank) {
+          const cSlot = player.availableCastles.find((c) => c.rank === prevRank);
+          if (cSlot) cSlot.count += 1;
+        } else if (actionType === 'PLACE_SECRET_TILE' && prevTile) {
+          player.secretTile = prevTile;
+        }
+      }
+
       newState.board[action.row][action.col] = {
         type: 'CASTLE',
         playerId: action.playerId,
@@ -150,54 +261,79 @@ export class KingdomsGameEngine
       if (castleSlot) {
         castleSlot.count -= 1;
       }
-      events.push({
-        type: 'CASTLE_PLACED',
-        playerId: action.playerId,
-        rank: action.rank,
+
+      newState.pendingPlacement = {
         row: action.row,
         col: action.col,
-      });
-    } else if (action.type === 'DRAW_AND_PLACE_TILE') {
-      const drawnTile = newState.drawPile.pop()!;
+        actionType: 'PLACE_CASTLE',
+        rank: action.rank,
+      };
+      newState.pendingTurnConfirmation = true;
+
+    } else if (action.type === 'DRAW_AND_PLACE_TILE' || action.type === 'PLACE_DRAWN_TILE') {
+      if (newState.pendingPlacement) {
+        const { row, col, actionType, rank: prevRank, tile: prevTile } = newState.pendingPlacement;
+        newState.board[row][col] = { type: 'EMPTY' };
+        if (actionType === 'PLACE_CASTLE' && prevRank) {
+          const cSlot = player.availableCastles.find((c) => c.rank === prevRank);
+          if (cSlot) cSlot.count += 1;
+        } else if (actionType === 'PLACE_SECRET_TILE' && prevTile) {
+          player.secretTile = prevTile;
+        }
+      }
+
+      const drawnTile = newState.pendingDrawnTile || newState.drawPile.pop()!;
+      newState.pendingDrawnTile = drawnTile;
+
       newState.board[action.row][action.col] = {
         type: 'TILE',
         tile: drawnTile,
       };
-      events.push({
-        type: 'TILE_DRAWN_AND_PLACED',
-        playerId: action.playerId,
-        tile: drawnTile,
+
+      newState.pendingPlacement = {
         row: action.row,
         col: action.col,
-      });
+        actionType: 'DRAW_AND_PLACE_TILE',
+        tile: drawnTile,
+      };
+      newState.pendingTurnConfirmation = true;
+
     } else if (action.type === 'PLACE_SECRET_TILE') {
+      if (newState.pendingPlacement) {
+        const { row, col, actionType, rank: prevRank, tile: prevTile } = newState.pendingPlacement;
+        newState.board[row][col] = { type: 'EMPTY' };
+        if (actionType === 'PLACE_CASTLE' && prevRank) {
+          const cSlot = player.availableCastles.find((c) => c.rank === prevRank);
+          if (cSlot) cSlot.count += 1;
+        } else if (actionType === 'PLACE_SECRET_TILE' && prevTile) {
+          player.secretTile = prevTile;
+        }
+      }
+
       const secret = player.secretTile!;
       newState.board[action.row][action.col] = {
         type: 'TILE',
         tile: secret,
       };
       player.secretTile = null;
-      events.push({
-        type: 'SECRET_TILE_PLACED',
-        playerId: action.playerId,
-        tile: secret,
+
+      newState.pendingPlacement = {
         row: action.row,
         col: action.col,
-      });
+        actionType: 'PLACE_SECRET_TILE',
+        tile: secret,
+      };
+      newState.pendingTurnConfirmation = true;
+
     } else if (action.type === 'PASS') {
       events.push({ type: 'PLAYER_PASSED', playerId: action.playerId });
-    }
-
-    // Check if board is full or no moves remain
-    const isBoardFull = !this.hasEmptyCell(newState.board);
-
-    if (isBoardFull) {
-      this.handleEpochEnd(newState, events, seedRandom);
-    } else {
-      // Advance to next active player
+      // Pass is immediate turn advancement
       const currentIndex = newState.turnOrder.indexOf(newState.activePlayerId);
       const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
       newState.activePlayerId = newState.turnOrder[nextIndex];
+      newState.pendingPlacement = null;
+      newState.pendingDrawnTile = null;
+      newState.pendingTurnConfirmation = false;
     }
 
     return { newState, events };

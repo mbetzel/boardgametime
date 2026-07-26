@@ -20,6 +20,8 @@ function getAuthUser(request: FastifyRequest) {
 }
 
 function mapMatchToDTO(match: any): MatchDTO {
+  const state = match.stateSnapshot as any;
+  const hasPendingTurn = !!match.turnStartStateSnapshot || !!state?.pendingTurnConfirmation || !!state?.pendingPlacement;
   return {
     id: match.id,
     gameId: match.gameId,
@@ -27,6 +29,8 @@ function mapMatchToDTO(match: any): MatchDTO {
     status: match.status as MatchStatus,
     currentTurnPlayerId: match.currentTurnPlayerId,
     stateSnapshot: match.stateSnapshot,
+    turnStartStateSnapshot: match.turnStartStateSnapshot || null,
+    hasPendingTurn,
     players: (match.players || []).map((p: any) => ({
       id: p.id,
       matchId: p.matchId,
@@ -150,35 +154,63 @@ export async function matchRoutes(fastify: FastifyInstance) {
 
     const currentState = match.stateSnapshot as any;
     let newState: any;
+    let turnStartSnapshotToSave: any = match.turnStartStateSnapshot;
 
-    if (match.gameId === 'kingdoms') {
-      const action: KingdomsAction = {
-        type: actionType as any,
-        playerId: auth.sub,
-        ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
-      } as KingdomsAction;
-
-      try {
-        const result = kingdomsEngine.applyAction(currentState, action);
-        newState = result.newState;
-      } catch (err: any) {
-        return reply.status(400).send({ message: err.message || 'Invalid game action.' });
-      }
-    } else if (match.gameId === 'dungeons-dice-danger') {
-      const action: DungeonsDiceDangerAction = {
-        type: actionType as any,
-        playerId: auth.sub,
-        ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
-      } as DungeonsDiceDangerAction;
-
-      try {
-        const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
-        newState = result.newState;
-      } catch (err: any) {
-        return reply.status(400).send({ message: err.message || 'Invalid game action.' });
+    if (actionType === 'CANCEL_TURN') {
+      if (match.turnStartStateSnapshot) {
+        if (match.gameId === 'kingdoms') {
+          const result = kingdomsEngine.applyAction(currentState, { type: 'CANCEL_TURN', playerId: auth.sub });
+          newState = result.newState;
+          if (!newState.pendingDrawnTile) {
+            turnStartSnapshotToSave = null;
+          }
+        } else if (match.gameId === 'dungeons-dice-danger') {
+          const result = dungeonsDiceDangerEngine.applyAction(currentState, { type: 'CANCEL_TURN', playerId: auth.sub });
+          newState = result.newState;
+          turnStartSnapshotToSave = null;
+        } else {
+          newState = match.turnStartStateSnapshot;
+          turnStartSnapshotToSave = null;
+        }
+      } else {
+        newState = currentState;
       }
     } else {
-      newState = { ...currentState };
+      if (match.gameId === 'kingdoms') {
+        const action: KingdomsAction = {
+          type: actionType as any,
+          playerId: auth.sub,
+          ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+        } as KingdomsAction;
+
+        try {
+          const result = kingdomsEngine.applyAction(currentState, action);
+          newState = result.newState;
+        } catch (err: any) {
+          return reply.status(400).send({ message: err.message || 'Invalid game action.' });
+        }
+      } else if (match.gameId === 'dungeons-dice-danger') {
+        const action: DungeonsDiceDangerAction = {
+          type: actionType as any,
+          playerId: auth.sub,
+          ...(typeof actionPayload === 'object' && actionPayload !== null ? actionPayload : {}),
+        } as DungeonsDiceDangerAction;
+
+        try {
+          const result = dungeonsDiceDangerEngine.applyAction(currentState, action);
+          newState = result.newState;
+        } catch (err: any) {
+          return reply.status(400).send({ message: err.message || 'Invalid game action.' });
+        }
+      } else {
+        newState = { ...currentState };
+      }
+
+      if (actionType === 'CONFIRM_TURN') {
+        turnStartSnapshotToSave = null;
+      } else if (!turnStartSnapshotToSave && actionType !== 'PASS') {
+        turnStartSnapshotToSave = currentState;
+      }
     }
 
     // Sequence num calculation & DB transaction
@@ -199,6 +231,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
         where: { id },
         data: {
           stateSnapshot: newState,
+          turnStartStateSnapshot: turnStartSnapshotToSave,
           currentTurnPlayerId: newState.activePlayerId || null,
           status: newState.isComplete ? 'COMPLETED' : 'IN_PROGRESS',
         },

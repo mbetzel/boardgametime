@@ -147,6 +147,10 @@ export class DungeonsDiceDangerGameEngine
       return { valid: true };
     }
 
+    if (action.type === 'CONFIRM_TURN' || action.type === 'CANCEL_TURN') {
+      return { valid: true };
+    }
+
     return { valid: false, reason: 'Unknown action type.' };
   }
 
@@ -164,6 +168,21 @@ export class DungeonsDiceDangerGameEngine
     const events: unknown[] = [];
     const getRandom = seedRandom || Math.random;
     const mapDef = getMapDefinition(newState.mapId);
+
+    if (action.type === 'CANCEL_TURN') {
+      delete newState.pendingSubmissions[action.playerId];
+      return { newState, events };
+    }
+
+    if (action.type === 'CONFIRM_TURN') {
+      // Check if all players submitted
+      const allPlayerIds = Object.keys(newState.playerStates);
+      const allSubmitted = allPlayerIds.every((pid) => !!newState.pendingSubmissions[pid]);
+      if (allSubmitted) {
+        this.resolveRoundSubmissions(newState, events, mapDef);
+      }
+      return { newState, events };
+    }
 
     if (action.type === 'ROLL_DICE') {
       const roll1 = Math.floor(getRandom() * 6) + 1;

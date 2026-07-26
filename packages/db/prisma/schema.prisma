@@ -57,6 +57,7 @@ model Match {
   status              String        @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED | ABANDONED
   currentTurnPlayerId String?
   stateSnapshot       Json
+  turnStartStateSnapshot Json?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   players             MatchPlayer[]

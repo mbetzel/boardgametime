@@ -17,6 +17,7 @@ import { MatchDTO, MatchEventDTO, UserDTO } from '@boardgametime/types';
 import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game-kingdoms';
 import { DungeonsDiceDangerGameState } from '@boardgametime/game-dungeons-dice-danger';
 import { DungeonsDiceDangerMatchView } from '../../../components/games/dungeons-dice-danger/DungeonsDiceDangerMatchView';
+import { TurnConfirmationBar } from '../../../components/game/TurnConfirmationBar';
 
 export default function MatchPage() {
   const params = useParams();
@@ -251,12 +252,54 @@ export default function MatchPage() {
     }
   };
 
+  const handleConfirmTurn = async () => {
+    if (!isMyTurn) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const updated = await submitAction(matchId, {
+        actionType: 'CONFIRM_TURN',
+        actionPayload: {},
+      });
+      updateMatchData(updated);
+      setSelectedAction(null);
+      const updatedEvents = await getMatchEvents(matchId).catch(() => []);
+      if (updatedEvents.length > 0) setEvents(updatedEvents);
+    } catch (err: any) {
+      setError(err.message || 'Failed to confirm turn');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelTurn = async () => {
+    if (!isMyTurn) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const updated = await submitAction(matchId, {
+        actionType: 'CANCEL_TURN',
+        actionPayload: {},
+      });
+      updateMatchData(updated);
+      setSelectedAction(null);
+      const updatedEvents = await getMatchEvents(matchId).catch(() => []);
+      if (updatedEvents.length > 0) setEvents(updatedEvents);
+    } catch (err: any) {
+      setError(err.message || 'Failed to cancel turn');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   let selectedActionText = '';
   if (selectedAction) {
     if (selectedAction.kind === 'CASTLE') selectedActionText = `PLACE RANK ${selectedAction.rank}`;
     else if (selectedAction.kind === 'DRAW_TILE') selectedActionText = 'DRAW & PLACE';
     else if (selectedAction.kind === 'SECRET_TILE') selectedActionText = 'PLACE SECRET';
   }
+
+  const hasPendingMove = isMyTurn && (match.hasPendingTurn || gameState.pendingTurnConfirmation || !!gameState.pendingPlacement);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
@@ -281,6 +324,14 @@ export default function MatchPage() {
           currentUserId={currentUserId}
           onOpenScoringModal={() => setScoringModalOpen(true)}
         />
+
+        {hasPendingMove && (
+          <TurnConfirmationBar
+            onConfirm={handleConfirmTurn}
+            onCancel={handleCancelTurn}
+            isLoading={actionLoading}
+          />
+        )}
 
         {error && (
           <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 600 }}>

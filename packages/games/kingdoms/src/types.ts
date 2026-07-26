@@ -34,13 +34,26 @@ export interface KingdomsGameState {
   isComplete: boolean;
   winnerPlayerId?: string;
   lastScoringResult?: GameScoringSummary;
+  pendingDrawnTile?: Tile | null;
+  pendingTurnConfirmation?: boolean;
+  pendingPlacement?: {
+    row: number;
+    col: number;
+    actionType: string;
+    rank?: 1 | 2 | 3 | 4;
+    tile?: Tile;
+  } | null;
 }
 
 export type KingdomsAction =
   | { type: 'PLACE_CASTLE'; playerId: string; rank: 1 | 2 | 3 | 4; row: number; col: number }
   | { type: 'DRAW_AND_PLACE_TILE'; playerId: string; row: number; col: number }
+  | { type: 'DRAW_TILE'; playerId: string }
+  | { type: 'PLACE_DRAWN_TILE'; playerId: string; row: number; col: number }
   | { type: 'PLACE_SECRET_TILE'; playerId: string; row: number; col: number }
-  | { type: 'PASS'; playerId: string };
+  | { type: 'PASS'; playerId: string }
+  | { type: 'CONFIRM_TURN'; playerId: string }
+  | { type: 'CANCEL_TURN'; playerId: string };
 
 export interface LineSegmentScore {
   lineType: 'ROW' | 'COL';
