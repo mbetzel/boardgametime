@@ -12,10 +12,47 @@ concurrency:
 
 jobs:
   # ──────────────────────────────────────────────
+  # Run unit tests and linting
+  # ──────────────────────────────────────────────
+  test:
+    name: Run Tests & Lint
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/boardgametime_test?schema=public"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run lint
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
+
+  # ──────────────────────────────────────────────
   # Build Docker images and push to Artifact Registry
   # ──────────────────────────────────────────────
   build-and-push:
     name: Build & Push Images
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
