@@ -283,19 +283,24 @@ export const GAME_DEFINITIONS: Record<string, GameDefinition> = {
   },
 };
 
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
 export function isGameAvailable(
   gameId: string,
-  isProduction: boolean = process.env.NODE_ENV === 'production'
+  isProduction: boolean = process?.env?.NODE_ENV === 'production'
 ): boolean {
   const game = GAME_DEFINITIONS[gameId];
   if (!game) return false;
   if (game.status === 'production') return true;
   if (game.status === 'beta') {
     const isBetaEnabled =
-      process.env.NEXT_PUBLIC_ENABLE_BETA_GAMES === 'true' ||
-      process.env.ENABLE_BETA_GAMES === 'true';
+      process?.env?.NEXT_PUBLIC_ENABLE_BETA_GAMES === 'true' ||
+      process?.env?.ENABLE_BETA_GAMES === 'true';
     return !isProduction || isBetaEnabled;
   }
   return false;
 }
+
 
