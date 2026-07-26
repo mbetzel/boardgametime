@@ -39,7 +39,7 @@ describe('Kingdoms Game Engine State Machine', () => {
     });
     expect(actionValidation.valid).toBe(true);
 
-    const { newState } = engine.applyAction(state, {
+    const { newState: stagedState } = engine.applyAction(state, {
       type: 'PLACE_CASTLE',
       playerId: 'p1',
       rank: 1,
@@ -47,12 +47,18 @@ describe('Kingdoms Game Engine State Machine', () => {
       col: 0,
     });
 
-    expect(newState.board[0][0]).toEqual({
+    expect(stagedState.board[0][0]).toEqual({
       type: 'CASTLE',
       playerId: 'p1',
       rank: 1,
     });
-    expect(newState.players['p1'].availableCastles.find((c) => c.rank === 1)?.count).toBe(3);
+    expect(stagedState.players['p1'].availableCastles.find((c) => c.rank === 1)?.count).toBe(3);
+
+    const { newState } = engine.applyAction(stagedState, {
+      type: 'CONFIRM_TURN',
+      playerId: 'p1',
+    });
+
     expect(newState.activePlayerId).toBe('p2'); // Rotates turn
   });
 
@@ -75,15 +81,21 @@ describe('Kingdoms Game Engine State Machine', () => {
     const state = engine.createInitialState(playerIds);
     const initialDrawCount = state.drawPile.length;
 
-    const { newState } = engine.applyAction(state, {
+    const { newState: stagedState } = engine.applyAction(state, {
       type: 'DRAW_AND_PLACE_TILE',
       playerId: 'p1',
       row: 1,
       col: 1,
     });
 
-    expect(newState.board[1][1].type).toBe('TILE');
-    expect(newState.drawPile.length).toBe(initialDrawCount - 1);
+    expect(stagedState.board[1][1].type).toBe('TILE');
+    expect(stagedState.drawPile.length).toBe(initialDrawCount - 1);
+
+    const { newState } = engine.applyAction(stagedState, {
+      type: 'CONFIRM_TURN',
+      playerId: 'p1',
+    });
+
     expect(newState.activePlayerId).toBe('p2');
   });
 
@@ -157,7 +169,11 @@ describe('Kingdoms Game Engine State Machine', () => {
           };
         }
 
-        const { newState } = engine.applyAction(state, actionToTake);
+        const { newState: stagedState } = engine.applyAction(state, actionToTake);
+        const { newState } = engine.applyAction(stagedState, {
+          type: 'CONFIRM_TURN',
+          playerId: activePid,
+        });
         state = newState;
         cellCount++;
       }
@@ -168,11 +184,15 @@ describe('Kingdoms Game Engine State Machine', () => {
 
     // Place final 30th tile to trigger Epoch 1 scoring & transition to Epoch 2
     const finalActivePid = state.activePlayerId;
-    const { newState: epoch2State, events } = engine.applyAction(state, {
+    const { newState: stagedEpoch2State } = engine.applyAction(state, {
       type: 'DRAW_AND_PLACE_TILE',
       playerId: finalActivePid,
       row: 5,
       col: 4,
+    });
+    const { newState: epoch2State, events } = engine.applyAction(stagedEpoch2State, {
+      type: 'CONFIRM_TURN',
+      playerId: finalActivePid,
     });
 
     expect(epoch2State.epoch).toBe(2);
@@ -186,16 +206,109 @@ describe('Kingdoms Game Engine State Machine', () => {
 
     // Subsequent action in Epoch 2 retains Epoch 1 lastScoringResult without resetting or corrupting it
     const activeInEpoch2 = epoch2State.activePlayerId;
-    const { newState: epoch2NextState } = engine.applyAction(epoch2State, {
+    const { newState: stagedEpoch2NextState } = engine.applyAction(epoch2State, {
       type: 'PLACE_CASTLE',
       playerId: activeInEpoch2,
       rank: 1,
       row: 0,
       col: 0,
     });
+    const { newState: epoch2NextState } = engine.applyAction(stagedEpoch2NextState, {
+      type: 'CONFIRM_TURN',
+      playerId: activeInEpoch2,
+    });
     expect(epoch2NextState.epoch).toBe(2);
     expect(epoch2NextState.lastScoringResult).toBeDefined();
     expect(epoch2NextState.lastScoringResult?.epoch).toBe(1);
+  });
+
+  it('supports turn confirmation and cancellation for castle placement', () => {
+    const state = engine.createInitialState(playerIds);
+
+    // 1. Stage castle placement
+    const { newState: stagedState } = engine.applyAction(state, {
+      type: 'PLACE_CASTLE',
+      playerId: 'p1',
+      rank: 1,
+      row: 0,
+      col: 0,
+    });
+
+    expect(stagedState.pendingTurnConfirmation).toBe(true);
+    expect(stagedState.board[0][0].type).toBe('CASTLE');
+    expect(stagedState.activePlayerId).toBe('p1'); // Turn stays with p1 until confirmed
+
+    // 2. Cancel turn
+    const { newState: cancelledState } = engine.applyAction(stagedState, {
+      type: 'CANCEL_TURN',
+      playerId: 'p1',
+    });
+
+    expect(cancelledState.pendingTurnConfirmation).toBe(false);
+    expect(cancelledState.board[0][0].type).toBe('EMPTY');
+    expect(cancelledState.players['p1'].availableCastles.find((c) => c.rank === 1)?.count).toBe(4);
+
+    // 3. Stage castle placement again and confirm
+    const { newState: restagedState } = engine.applyAction(cancelledState, {
+      type: 'PLACE_CASTLE',
+      playerId: 'p1',
+      rank: 1,
+      row: 0,
+      col: 1,
+    });
+
+    const { newState: confirmedState } = engine.applyAction(restagedState, {
+      type: 'CONFIRM_TURN',
+      playerId: 'p1',
+    });
+
+    expect(confirmedState.pendingTurnConfirmation).toBe(false);
+    expect(confirmedState.board[0][1].type).toBe('CASTLE');
+    expect(confirmedState.activePlayerId).toBe('p2'); // Advanced to next player upon confirmation
+  });
+
+  it('preserves drawn tile when cancelling tile placement', () => {
+    const state = engine.createInitialState(playerIds);
+
+    // Stage tile draw & place
+    const { newState: stagedState } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 1,
+      col: 1,
+    });
+
+    const drawnTile = stagedState.pendingDrawnTile;
+    expect(drawnTile).toBeDefined();
+
+    // Cancel placement
+    const { newState: cancelledState } = engine.applyAction(stagedState, {
+      type: 'CANCEL_TURN',
+      playerId: 'p1',
+    });
+
+    // Cell cleared, but pendingDrawnTile remains drawn
+    expect(cancelledState.board[1][1].type).toBe('EMPTY');
+    expect(cancelledState.pendingDrawnTile?.id).toBe(drawnTile?.id);
+
+    // Place drawn tile on different cell
+    const { newState: relocatedState } = engine.applyAction(cancelledState, {
+      type: 'PLACE_DRAWN_TILE',
+      playerId: 'p1',
+      row: 2,
+      col: 2,
+    });
+
+    expect(relocatedState.board[2][2].type).toBe('TILE');
+
+    const { newState: confirmedState } = engine.applyAction(relocatedState, {
+      type: 'CONFIRM_TURN',
+      playerId: 'p1',
+    });
+
+    expect(confirmedState.board[2][2].type).toBe('TILE');
+    expect(confirmedState.pendingDrawnTile).toBeNull();
+    expect(confirmedState.activePlayerId).toBe('p2');
   });
 });
 

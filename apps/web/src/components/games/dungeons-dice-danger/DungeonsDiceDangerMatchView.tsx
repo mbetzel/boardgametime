@@ -9,6 +9,7 @@ import { DungeonSheet } from './DungeonSheet';
 import { DicePairSelector } from './DicePairSelector';
 import { PlayerTrackerCard } from './PlayerTrackerCard';
 import { TurnHistoryLog } from '../../game/TurnHistoryLog';
+import { TurnConfirmationBar } from '../../game/TurnConfirmationBar';
 import { Button } from '../../ui/Button';
 
 interface DungeonsDiceDangerMatchViewProps {
@@ -129,6 +130,14 @@ export const DungeonsDiceDangerMatchView: React.FC<DungeonsDiceDangerMatchViewPr
               isActivePlayer={isActivePlayer}
               blackDieCharges={currentUserState.blackDieCharges}
               onSubmitPairs={handleSubmitPairs}
+            />
+          )}
+
+          {gameState.phase === 'SUBMITTING_PAIRS' && hasSubmitted && (
+            <TurnConfirmationBar
+              message="Pairs selected! Click Confirm to finalize your move or Cancel to reset your selection for this round."
+              onConfirm={() => onSendAction('CONFIRM_TURN', {})}
+              onCancel={() => onSendAction('CANCEL_TURN', {})}
             />
           )}
         </div>

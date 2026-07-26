@@ -206,6 +206,8 @@ export interface MatchDTO {
   status: MatchStatus;
   currentTurnPlayerId: string | null;
   stateSnapshot: unknown;
+  turnStartStateSnapshot?: unknown | null;
+  hasPendingTurn?: boolean;
   players: MatchPlayerDTO[];
   createdAt: string;
   updatedAt: string;
