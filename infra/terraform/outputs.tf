@@ -17,3 +17,14 @@ output "redis_host_ip" {
   description = "Host IP address of the Cloud Memorystore Redis instance"
   value       = google_redis_instance.redis.host
 }
+
+output "cdn_ip_address" {
+  description = "Global IP address of the Cloud CDN External Load Balancer"
+  value       = google_compute_global_address.cdn_ip.address
+}
+
+output "cdn_web_url" {
+  description = "HTTP entry point URL for the Cloud CDN Load Balancer"
+  value       = "http://${google_compute_global_address.cdn_ip.address}"
+}
+
