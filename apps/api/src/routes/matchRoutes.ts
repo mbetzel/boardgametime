@@ -19,8 +19,15 @@ function getAuthUser(request: FastifyRequest) {
   return verifyToken(token);
 }
 
-function mapMatchToDTO(match: any): MatchDTO {
-  const state = match.stateSnapshot as any;
+function mapMatchToDTO(match: any, requestingUserId?: string): MatchDTO {
+  let state = match.stateSnapshot as any;
+  if (state && requestingUserId) {
+    if (match.gameId === 'kingdoms') {
+      state = kingdomsEngine.sanitizeStateForPlayer(state, requestingUserId);
+    } else if (match.gameId === 'dungeons-dice-danger') {
+      state = dungeonsDiceDangerEngine.sanitizeStateForPlayer(state, requestingUserId);
+    }
+  }
   const hasPendingTurn = !!match.turnStartStateSnapshot || !!state?.pendingTurnConfirmation || !!state?.pendingPlacement;
   return {
     id: match.id,
@@ -28,7 +35,7 @@ function mapMatchToDTO(match: any): MatchDTO {
     mode: match.mode as PlayMode,
     status: match.status as MatchStatus,
     currentTurnPlayerId: match.currentTurnPlayerId,
-    stateSnapshot: match.stateSnapshot,
+    stateSnapshot: state,
     turnStartStateSnapshot: match.turnStartStateSnapshot || null,
     hasPendingTurn,
     players: (match.players || []).map((p: any) => ({
@@ -80,7 +87,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return reply.send(matches.map(mapMatchToDTO));
+    return reply.send(matches.map((m) => mapMatchToDTO(m, auth.sub)));
   });
 
   // Get match state
@@ -111,7 +118,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
     }
 
-    return reply.send(mapMatchToDTO(match));
+    return reply.send(mapMatchToDTO(match, auth.sub));
   });
 
   // Submit action
@@ -253,7 +260,7 @@ export async function matchRoutes(fastify: FastifyInstance) {
       createdAt: eventRecord.createdAt.toISOString(),
     };
 
-    const matchDto = mapMatchToDTO(updatedMatch);
+    const matchDto = mapMatchToDTO(updatedMatch, auth.sub);
 
     const io = getSocketServer();
     if (io) {

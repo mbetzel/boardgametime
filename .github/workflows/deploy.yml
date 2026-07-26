@@ -172,7 +172,7 @@ jobs:
 
       - name: Invalidate Cloud CDN cache
         run: |
-          gcloud compute url-maps invalidate-cdn-cache boardgametime-web-cdn-urlmap --path "/*" --async
+          gcloud compute url-maps invalidate-cdn-cache boardgametime-web-cdn-urlmap --project="${{ secrets.GCP_PROJECT_ID }}" --path "/*" --async
 
       - name: Verify Web deployment
         run: |

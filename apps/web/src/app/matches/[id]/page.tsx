@@ -124,7 +124,17 @@ export default function MatchPage() {
       socket.off('action_applied', handleActionApplied);
       socket.off('error', handleError);
     };
-  }, [matchId]);
+  }, [matchId, updateMatchData]);
+
+  const kingdomsGameState = match?.gameId === 'kingdoms' ? (match.stateSnapshot as KingdomsGameState) : undefined;
+  const isKingdomsMyTurn = kingdomsGameState?.activePlayerId === currentUserId;
+  const pendingDrawnTile = kingdomsGameState?.pendingDrawnTile;
+
+  useEffect(() => {
+    if (isKingdomsMyTurn && pendingDrawnTile && selectedAction?.kind !== 'DRAW_TILE') {
+      setSelectedAction({ kind: 'DRAW_TILE' });
+    }
+  }, [isKingdomsMyTurn, pendingDrawnTile, selectedAction]);
 
   const renderTopBanner = () => (
     <Header user={currentUser} onSignOut={handleSignOut} />
@@ -193,7 +203,7 @@ export default function MatchPage() {
   const isMyTurn = gameState.activePlayerId === currentUserId;
   const myPlayerState = currentUserId ? gameState.players[currentUserId] : undefined;
   const drawPile = gameState.drawPile || [];
-  const nextDrawTile = drawPile.length > 0 ? drawPile[drawPile.length - 1] : null;
+  const nextDrawTile = gameState.pendingDrawnTile || (drawPile.length > 0 ? drawPile[drawPile.length - 1] : null);
 
   const handleCellClick = async (row: number, col: number) => {
     if (!isMyTurn || !selectedAction) return;
@@ -208,7 +218,7 @@ export default function MatchPage() {
       actionType = 'PLACE_CASTLE';
       actionPayload.rank = selectedAction.rank;
     } else if (selectedAction.kind === 'DRAW_TILE') {
-      actionType = 'DRAW_AND_PLACE_TILE';
+      actionType = gameState.pendingDrawnTile ? 'PLACE_DRAWN_TILE' : 'DRAW_AND_PLACE_TILE';
     } else if (selectedAction.kind === 'SECRET_TILE') {
       actionType = 'PLACE_SECRET_TILE';
     }
@@ -360,6 +370,7 @@ export default function MatchPage() {
                 playerState={myPlayerState}
                 drawPileCount={gameState.drawPile?.length || 0}
                 nextDrawTile={nextDrawTile}
+                pendingDrawnTile={gameState.pendingDrawnTile}
                 isMyTurn={isMyTurn}
                 selectedAction={selectedAction}
                 onSelectAction={setSelectedAction}

@@ -343,27 +343,31 @@ export class KingdomsGameEngine
     state: KingdomsGameState,
     playerId: string
   ): KingdomsGameState {
-    const sanitized: KingdomsGameState = JSON.parse(JSON.stringify(state));
+    const sanitized: KingdomsGameState = JSON.parse(JSON.stringify(state || {}));
 
     // Hide draw pile tiles (keep length)
-    sanitized.drawPile = sanitized.drawPile.map((_, i) => ({
-      id: `hidden_${i}`,
-      type: 'RESOURCE',
-      value: 0,
-      name: 'Face-Down Tile',
-    }));
+    if (Array.isArray(sanitized.drawPile)) {
+      sanitized.drawPile = sanitized.drawPile.map((_, i) => ({
+        id: `hidden_${i}`,
+        type: 'RESOURCE',
+        value: 0,
+        name: 'Face-Down Tile',
+      }));
+    }
 
     // Hide opponents' secret tiles
-    Object.keys(sanitized.players).forEach((pid) => {
-      if (pid !== playerId && sanitized.players[pid].secretTile) {
-        sanitized.players[pid].secretTile = {
-          id: 'hidden_secret',
-          type: 'RESOURCE',
-          value: 0,
-          name: 'Secret Tile (Face-Down)',
-        };
-      }
-    });
+    if (sanitized.players) {
+      Object.keys(sanitized.players).forEach((pid) => {
+        if (pid !== playerId && sanitized.players[pid]?.secretTile) {
+          sanitized.players[pid].secretTile = {
+            id: 'hidden_secret',
+            type: 'RESOURCE',
+            value: 0,
+            name: 'Secret Tile (Face-Down)',
+          };
+        }
+      });
+    }
 
     return sanitized;
   }

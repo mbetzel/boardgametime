@@ -310,5 +310,58 @@ describe('Kingdoms Game Engine State Machine', () => {
     expect(confirmedState.pendingDrawnTile).toBeNull();
     expect(confirmedState.activePlayerId).toBe('p2');
   });
+
+  it('reuses pendingDrawnTile when DRAW_AND_PLACE_TILE is called again in same turn', () => {
+    const state = engine.createInitialState(playerIds);
+    const initialDrawCount = state.drawPile.length;
+
+    // 1. First DRAW_AND_PLACE_TILE
+    const { newState: staged1 } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 0,
+      col: 0,
+    });
+
+    const firstDrawnTile = staged1.pendingDrawnTile;
+    expect(firstDrawnTile).toBeDefined();
+    expect(staged1.drawPile.length).toBe(initialDrawCount - 1);
+
+    // 2. Second DRAW_AND_PLACE_TILE on a different cell without confirming
+    const { newState: staged2 } = engine.applyAction(staged1, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 0,
+      col: 1,
+    });
+
+    // Same tile reused, draw pile count does NOT decrease again
+    expect(staged2.pendingDrawnTile?.id).toBe(firstDrawnTile?.id);
+    expect(staged2.drawPile.length).toBe(initialDrawCount - 1);
+    expect(staged2.board[0][0].type).toBe('EMPTY');
+    expect(staged2.board[0][1].type).toBe('TILE');
+  });
+
+  it('sanitizes face-down drawPile tiles while preserving pendingDrawnTile for active player', () => {
+    const state = engine.createInitialState(playerIds);
+
+    const { newState: stagedState } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 1,
+      col: 1,
+    });
+
+    const sanitizedForP1 = engine.sanitizeStateForPlayer(stagedState, 'p1');
+
+    // Face-down draw pile tiles are hidden
+    sanitizedForP1.drawPile.forEach((tile) => {
+      expect(tile.name).toBe('Face-Down Tile');
+      expect(tile.value).toBe(0);
+    });
+
+    // P1 sees their pendingDrawnTile
+    expect(sanitizedForP1.pendingDrawnTile?.id).toBe(stagedState.pendingDrawnTile?.id);
+  });
 });
 

@@ -13,6 +13,7 @@ export interface PlayerHandControlsProps {
   playerState?: KingdomsPlayerState;
   drawPileCount: number;
   nextDrawTile?: Tile | null;
+  pendingDrawnTile?: Tile | null;
   isMyTurn: boolean;
   selectedAction: SelectedActionType;
   onSelectAction: (action: SelectedActionType) => void;
@@ -59,6 +60,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
   playerState,
   drawPileCount,
   nextDrawTile,
+  pendingDrawnTile,
   isMyTurn,
   selectedAction,
   onSelectAction,
@@ -69,6 +71,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
 
   const castles = playerState.availableCastles || [];
   const secretTile = playerState.secretTile as Tile | null;
+  const isDrawnTilePending = !!pendingDrawnTile;
 
   return (
     <div
@@ -106,11 +109,12 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
             const isSelected = selectedAction?.kind === 'CASTLE' && selectedAction.rank === rank;
             const hasCastles = count > 0;
             const playerColor = playerState?.color || '#f59e0b';
+            const canSelectCastle = isMyTurn && hasCastles && !isDrawnTilePending && !isLoading;
 
             return (
               <button
                 key={rank}
-                disabled={!isMyTurn || !hasCastles || isLoading}
+                disabled={!canSelectCastle}
                 onClick={() =>
                   onSelectAction(isSelected ? null : { kind: 'CASTLE', rank })
                 }
@@ -119,14 +123,14 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
                   borderRadius: '10px',
                   backgroundColor: isSelected ? `${playerColor}33` : '#0f172a',
                   border: isSelected ? `2px solid ${playerColor}` : '1px solid #334155',
-                  color: hasCastles ? '#f8fafc' : '#64748b',
-                  cursor: isMyTurn && hasCastles ? 'pointer' : 'not-allowed',
+                  color: hasCastles && !isDrawnTilePending ? '#f8fafc' : '#64748b',
+                  cursor: canSelectCastle ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.2rem',
                   transition: 'all 0.15s ease-in-out',
-                  opacity: hasCastles ? 1 : 0.4,
+                  opacity: hasCastles && !isDrawnTilePending ? 1 : 0.4,
                   boxShadow: isSelected ? `0 0 12px ${playerColor}66` : 'none',
                 }}
               >
@@ -146,20 +150,28 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
           {/* Draw & Place Tile Action */}
           <Button
             variant={selectedAction?.kind === 'DRAW_TILE' ? 'gold' : 'secondary'}
-            disabled={!isMyTurn || drawPileCount <= 0 || isLoading}
+            disabled={!isMyTurn || (!isDrawnTilePending && drawPileCount <= 0) || isLoading}
             onClick={() =>
-              onSelectAction(selectedAction?.kind === 'DRAW_TILE' ? null : { kind: 'DRAW_TILE' })
+              onSelectAction(
+                isDrawnTilePending
+                  ? { kind: 'DRAW_TILE' }
+                  : selectedAction?.kind === 'DRAW_TILE'
+                    ? null
+                    : { kind: 'DRAW_TILE' }
+              )
             }
             style={{ flex: 1, minWidth: '180px' }}
           >
-            📜 Draw & Place Tile ({drawPileCount} remaining)
+            {isDrawnTilePending
+              ? `📜 Place Drawn Tile (${pendingDrawnTile?.name || 'Tile Drawn'})`
+              : `📜 Draw & Place Tile (${drawPileCount} remaining)`}
           </Button>
 
           {/* Secret Tile Action */}
           {secretTile ? (
             <Button
               variant={selectedAction?.kind === 'SECRET_TILE' ? 'gold' : 'secondary'}
-              disabled={!isMyTurn || isLoading}
+              disabled={!isMyTurn || isDrawnTilePending || isLoading}
               onClick={() =>
                 onSelectAction(selectedAction?.kind === 'SECRET_TILE' ? null : { kind: 'SECRET_TILE' })
               }

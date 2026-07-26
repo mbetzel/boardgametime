@@ -193,6 +193,8 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA_EMAIL}" --role="roles/artifactregistry.writer"
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA_EMAIL}" --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding $PROJECT_ID  \
+  --member="serviceAccount:${SA_EMAIL}" --role="roles/compute.networkAdmin"
 
 # Allow GitHub Actions to impersonate the SA (replace PROJECT_NUMBER with your actual project number)
 gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
