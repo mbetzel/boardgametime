@@ -170,6 +170,10 @@ jobs:
           region: ${{ secrets.GCP_REGION }}
           image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/web:${{ needs.build-and-push.outputs.sha_tag }}
 
+      - name: Invalidate Cloud CDN cache
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache boardgametime-web-cdn-urlmap --path "/*" --async
+
       - name: Verify Web deployment
         run: |
           echo "✅ Web deployed with image tag: ${{ needs.build-and-push.outputs.sha_tag }}"
