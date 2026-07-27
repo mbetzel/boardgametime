@@ -176,13 +176,13 @@ export class KingdomsGameEngine
         } else if (actionType === 'PLACE_SECRET_TILE' && tile) {
           player.secretTile = tile;
         }
-        // Note: For drawn tile, pendingDrawnTile remains in newState.pendingDrawnTile!
         newState.pendingPlacement = null;
         newState.pendingTurnConfirmation = false;
       } else if (newState.pendingDrawnTile) {
         // Cancel a drawn-but-not-placed tile: return it to the top of the draw pile
         newState.drawPile.push(newState.pendingDrawnTile);
         newState.pendingDrawnTile = null;
+        newState.pendingTurnConfirmation = false;
       }
       return { newState, events };
     }
@@ -240,6 +240,7 @@ export class KingdomsGameEngine
       if (!newState.pendingDrawnTile) {
         newState.pendingDrawnTile = newState.drawPile.pop()!;
       }
+      newState.pendingTurnConfirmation = true;
       return { newState, events };
     }
 

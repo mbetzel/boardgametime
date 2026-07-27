@@ -219,7 +219,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
               letterSpacing: '0.02em',
             }}
           >
-            {hoverActionText || 'PLACE HERE'}
+            {selectedAction?.kind === 'DRAW_TILE' ? '📜 Draw Tile' : 'Place'}
           </div>
         );
       }

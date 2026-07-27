@@ -17,6 +17,7 @@ export interface PlayerHandControlsProps {
   isMyTurn: boolean;
   selectedAction: SelectedActionType;
   onSelectAction: (action: SelectedActionType) => void;
+  onDrawTile?: () => void;
   onPass: () => void;
   isLoading?: boolean;
 }
@@ -64,6 +65,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
   isMyTurn,
   selectedAction,
   onSelectAction,
+  onDrawTile,
   onPass,
   isLoading = false,
 }) => {
@@ -151,15 +153,21 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
           <Button
             variant={selectedAction?.kind === 'DRAW_TILE' ? 'gold' : 'secondary'}
             disabled={!isMyTurn || (!isDrawnTilePending && drawPileCount <= 0) || isLoading}
-            onClick={() =>
-              onSelectAction(
-                isDrawnTilePending
-                  ? { kind: 'DRAW_TILE' }
-                  : selectedAction?.kind === 'DRAW_TILE'
-                    ? null
-                    : { kind: 'DRAW_TILE' }
-              )
-            }
+            onClick={() => {
+              if (isDrawnTilePending) {
+                // When a drawn tile is pending, it MUST remain selected so the player can place it.
+                if (selectedAction?.kind !== 'DRAW_TILE') {
+                  onSelectAction({ kind: 'DRAW_TILE' });
+                }
+              } else if (selectedAction?.kind === 'DRAW_TILE') {
+                onSelectAction(null);
+              } else {
+                onSelectAction({ kind: 'DRAW_TILE' });
+                if (onDrawTile) {
+                  onDrawTile();
+                }
+              }
+            }}
             style={{ flex: '1 1 140px', minWidth: 0 }}
           >
             {isDrawnTilePending
@@ -262,7 +270,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
               {selectedAction.kind === 'CASTLE'
                 ? `Castle Rank ${selectedAction.rank}`
                 : selectedAction.kind === 'DRAW_TILE'
-                  ? (nextDrawTile ? formatNextTileBadgeText(nextDrawTile) : 'Draw Tile')
+                  ? (nextDrawTile ? formatNextTileBadgeText(nextDrawTile) : 'Draw & Place Tile')
                   : (secretTile ? formatSecretTileBadgeText(secretTile) : 'Secret Tile')
               }{' '}
               — Click board cell to place!

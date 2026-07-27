@@ -200,6 +200,10 @@ jobs:
           service: boardgametime-api
           region: ${{ secrets.GCP_REGION }}
           image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/boardgametime-repo/api:${{ needs.build-and-push.outputs.sha_tag }}
+          env_vars: |
+            EMAIL_PROVIDER=resend
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            EMAIL_FROM=BoardGameTime <notifications@boardgameti.me>
 
       - name: Verify API deployment
         run: |
