@@ -208,10 +208,7 @@ export default function MatchPage() {
   // use them as a preview — that caused the "Face-Down Tile" bug.
   // Filter out sanitized face-down stubs — if pendingDrawnTile somehow contains
   // a stub (e.g. from DB state corruption), treat it as unrevealed.
-  const rawPendingTile = gameState.pendingDrawnTile ?? null;
-  const nextDrawTile = rawPendingTile && rawPendingTile.name !== 'Face-Down Tile'
-    ? rawPendingTile
-    : null;
+  const nextDrawTile = gameState.pendingDrawnTile ?? null;
 
   const handleDrawTile = async () => {
     if (!isMyTurn || gameState.pendingDrawnTile || actionLoading) return;

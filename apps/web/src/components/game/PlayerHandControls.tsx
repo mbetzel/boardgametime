@@ -155,13 +155,17 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
             disabled={!isMyTurn || (!isDrawnTilePending && drawPileCount <= 0) || isLoading}
             onClick={() => {
               if (isDrawnTilePending) {
-                onSelectAction({ kind: 'DRAW_TILE' });
+                // When a drawn tile is pending, it MUST remain selected so the player can place it.
+                if (selectedAction?.kind !== 'DRAW_TILE') {
+                  onSelectAction({ kind: 'DRAW_TILE' });
+                }
               } else if (selectedAction?.kind === 'DRAW_TILE') {
                 onSelectAction(null);
-              } else if (onDrawTile) {
-                onDrawTile();
               } else {
                 onSelectAction({ kind: 'DRAW_TILE' });
+                if (onDrawTile) {
+                  onDrawTile();
+                }
               }
             }}
             style={{ flex: 1, minWidth: '180px' }}
