@@ -115,11 +115,55 @@ jobs:
       sha_tag: ${{ steps.tags.outputs.sha_tag }}
 
   # ──────────────────────────────────────────────
+  # Migrate Production Database Schema (Conditional)
+  # ──────────────────────────────────────────────
+  db-migrate:
+    name: Run DB Migrations
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for DB schema changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            db:
+              - 'packages/db/prisma/**'
+
+      - name: Install pnpm
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply DB Schema Migrations
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        run: pnpm --filter @boardgametime/db exec prisma db push
+
+  # ──────────────────────────────────────────────
   # Deploy API to Cloud Run
   # ──────────────────────────────────────────────
   deploy-api:
     name: Deploy API
-    needs: build-and-push
+    needs: [build-and-push, db-migrate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
