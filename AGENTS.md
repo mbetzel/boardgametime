@@ -35,6 +35,16 @@ To prevent Windows PowerShell string mangling or quote truncation during file op
 - **User Review Required**: All changes MUST be reviewed and approved by the user before committing or pushing.
 - **Conventional Commits**: All git commits MUST strictly adhere to the **Conventional Commits** specification:
   `<type>(<scope>): <short description>`
+- **Multi-line Commit Bodies**: PowerShell treats `-` as a unary operator, so
+  inline `-m "..."` fails when the body contains bullet points. Always write
+  multi-line commit messages to a temp file and use `-F`:
+  ```bash
+  # 1. Use write_to_file to create the message (no shell quoting issues)
+  # 2. Commit and clean up
+  wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c \
+    "git commit -F .git_commit_msg.txt && rm .git_commit_msg.txt"
+  ```
+  Single-line subject-only commits may still use `-m "..."`.
 - **Git Subagent Delegation**: Subagent `git_committer` can be invoked for staging, committing, and pushing changes safely from the primary Linux path.
 
 ### Commit Types
