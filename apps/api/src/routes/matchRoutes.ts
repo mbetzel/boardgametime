@@ -19,7 +19,7 @@ function getAuthUser(request: FastifyRequest) {
   return verifyToken(token);
 }
 
-function mapMatchToDTO(match: any, requestingUserId?: string): MatchDTO {
+export function mapMatchToDTO(match: any, requestingUserId?: string): MatchDTO {
   let state = match.stateSnapshot as any;
   if (state && requestingUserId) {
     if (match.gameId === 'kingdoms') {

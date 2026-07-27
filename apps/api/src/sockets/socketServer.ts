@@ -7,6 +7,7 @@ import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
 import { verifyToken } from '../services/authService';
 import { presenceManager } from '../services/presenceManager';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
+import { mapMatchToDTO } from '../routes/matchRoutes';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
@@ -225,29 +226,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           createdAt: eventRecord.createdAt.toISOString(),
         };
 
-        const state = updatedMatch.stateSnapshot as any;
-        const hasPendingTurn = !!updatedMatch.turnStartStateSnapshot || !!state?.pendingTurnConfirmation || !!state?.pendingPlacement;
-
-        const matchDto: MatchDTO = {
-          id: updatedMatch.id,
-          gameId: updatedMatch.gameId,
-          mode: updatedMatch.mode as any,
-          status: updatedMatch.status as any,
-          currentTurnPlayerId: updatedMatch.currentTurnPlayerId,
-          stateSnapshot: updatedMatch.stateSnapshot,
-          turnStartStateSnapshot: updatedMatch.turnStartStateSnapshot || null,
-          hasPendingTurn,
-          players: updatedMatch.players.map((p) => ({
-            id: p.id,
-            matchId: p.matchId,
-            userId: p.userId,
-            username: p.user.username,
-            seatIndex: p.seatIndex,
-            avatarUrl: p.user.avatarUrl,
-          })),
-          createdAt: updatedMatch.createdAt.toISOString(),
-          updatedAt: updatedMatch.updatedAt.toISOString(),
-        };
+        const matchDto = mapMatchToDTO(updatedMatch, actingUserId);
 
         matchesNs.to(matchId).emit('action_applied', matchEventDto);
         matchesNs.to(matchId).emit('match_updated', matchDto);
