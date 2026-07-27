@@ -151,7 +151,7 @@ export default function MatchPage() {
     );
   }
 
-  if (error || !match) {
+  if (!match) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
         {renderTopBanner()}
