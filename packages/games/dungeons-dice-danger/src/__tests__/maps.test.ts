@@ -23,6 +23,13 @@ describe('DungeonsDiceDanger Maps', () => {
     expect(activations.length).toBe(13);
     expect(monsters.length).toBe(7);
 
+    // Verify graph integrity: all connectedCellIds must exist
+    cellsList.forEach((cell) => {
+      cell.connectedCellIds.forEach((targetId) => {
+        expect(map1.cells[targetId]).toBeDefined();
+      });
+    });
+
     const map2 = getMapDefinition('clumsy-cultists');
     expect(map2.id).toBe('clumsy-cultists');
 
