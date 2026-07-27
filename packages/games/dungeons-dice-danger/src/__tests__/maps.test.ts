@@ -7,7 +7,21 @@ describe('DungeonsDiceDanger Maps', () => {
 
     const map1 = getMapDefinition('annoyed-animals');
     expect(map1.id).toBe('annoyed-animals');
-    expect(map1.startCellIds.length).toBeGreaterThan(0);
+    expect(map1.startCellIds.length).toBe(11);
+    expect(Object.keys(map1.cells).length).toBe(70);
+
+    const cellsList = Object.values(map1.cells);
+    const starts = cellsList.filter((c) => c.type === 'START');
+    const regulars = cellsList.filter((c) => c.type === 'REGULAR');
+    const chests = cellsList.filter((c) => c.type === 'CHEST');
+    const activations = cellsList.filter((c) => c.type === 'GRAY_ACTIVATION');
+    const monsters = cellsList.filter((c) => c.type === 'MONSTER');
+
+    expect(starts.length).toBe(11);
+    expect(regulars.length).toBe(37);
+    expect(chests.length).toBe(2);
+    expect(activations.length).toBe(13);
+    expect(monsters.length).toBe(7);
 
     const map2 = getMapDefinition('clumsy-cultists');
     expect(map2.id).toBe('clumsy-cultists');
