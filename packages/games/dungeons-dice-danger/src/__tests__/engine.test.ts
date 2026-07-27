@@ -61,6 +61,7 @@ describe('DungeonsDiceDangerGameEngine', () => {
     let state = engine.createInitialState(['p1']);
     state.phase = 'SUBMITTING_PAIRS';
     state.currentRoll = { whiteDice: [2, 2, 1, 3], blackDie: 4 };
+    state.playerStates['p1'].visitedCellIds.push('start-2-tl');
 
     // white-4-tl is an equal-dice space (requires 2 & 2)
     const valInvalid = engine.validateAction(state, {
