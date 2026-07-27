@@ -56,4 +56,34 @@ describe('DungeonsDiceDangerGameEngine', () => {
     expect(newState.phase).toBe('ROLLING');
     expect(newState.playerStates['p1'].health).toBeLessThan(10);
   });
+
+  it('rejects un-matched dice pairs on equal-dice spaces', () => {
+    let state = engine.createInitialState(['p1']);
+    state.phase = 'SUBMITTING_PAIRS';
+    state.currentRoll = { whiteDice: [2, 2, 1, 3], blackDie: 4 };
+
+    // white-4-tl is an equal-dice space (requires 2 & 2)
+    const valInvalid = engine.validateAction(state, {
+      type: 'SUBMIT_PAIRS',
+      playerId: 'p1',
+      submission: {
+        pair1: { diceIndices: [2, 3], targetCellId: 'white-4-tl' }, // 1 + 3 = 4, but not equal dice (1 != 3)
+        pair2: { diceIndices: [0, 1], forfeit: true },
+      },
+    });
+
+    expect(valInvalid.valid).toBe(false);
+    expect(valInvalid.reason).toContain('equal values');
+
+    const valValid = engine.validateAction(state, {
+      type: 'SUBMIT_PAIRS',
+      playerId: 'p1',
+      submission: {
+        pair1: { diceIndices: [0, 1], targetCellId: 'white-4-tl' }, // 2 + 2 = 4 (equal dice)
+        pair2: { diceIndices: [2, 3], forfeit: true },
+      },
+    });
+
+    expect(valValid.valid).toBe(true);
+  });
 });

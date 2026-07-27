@@ -268,6 +268,10 @@ export class DungeonsDiceDangerGameEngine
       return { valid: false, reason: `Selected dice sum ${sum} does not match cell value ${cell.value}.` };
     }
 
+    if (cell.requiresEqualDice && d1 !== d2 && !pair.useTorch) {
+      return { valid: false, reason: `Target cell ${cell.id} requires both dice to have equal values.` };
+    }
+
     // Check visit state
     if (player.visitedCellIds.includes(cell.id)) {
       return { valid: false, reason: 'Cell already visited.' };

@@ -266,11 +266,15 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
               subIcon = '📦';
               boxShadow = '0 3px 14px rgba(245, 158, 11, 0.45)';
             } else if (cell.type === 'MONSTER') {
-              background = 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)';
+              background = 'linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)';
               borderColor = '#fca5a5';
               textColor = '#ffffff';
               subIcon = '⚔️';
-              boxShadow = '0 3px 14px rgba(239, 68, 68, 0.5)';
+              boxShadow = '0 3px 14px rgba(239, 68, 68, 0.55)';
+            }
+
+            if (cell.requiresEqualDice && !subIcon) {
+              subIcon = '⚂=⚂';
             }
 
             if (isVisited) {
@@ -288,6 +292,9 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
               boxShadow = '0 0 16px rgba(251, 191, 36, 0.8)';
             }
 
+            const isMonsterNode = cell.type === 'MONSTER' && cell.monsterLifeBoxes;
+            const tileWidth = isMonsterNode ? '80px' : '36px';
+
             return (
               <button
                 key={cell.id}
@@ -300,8 +307,8 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                   position: 'absolute',
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,
-                  transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.2)' : 'scale(1)'}`,
-                  width: '36px',  // Optimized square tile dimensions to eliminate crowding
+                  transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.15)' : 'scale(1)'}`,
+                  width: tileWidth,
                   height: '36px',
                   borderRadius: '7px',
                   background: background,
@@ -315,20 +322,33 @@ export const DungeonSheet: React.FC<DungeonSheetProps> = ({
                   transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                   zIndex: isSelected ? 30 : isHovered ? 25 : isVisited ? 15 : 10,
                   opacity: disabled ? 0.6 : 1,
-                  padding: '2px',
+                  padding: '2px 4px',
                   userSelect: 'none',
                 }}
-                title={`${cell.label || cell.type} (Target Sum: ${cell.value ?? '—'})`}
+                title={`${cell.label || cell.type} ${cell.requiresEqualDice ? '(Requires Equal Dice)' : ''} ${cell.value ? `(Sum: ${cell.value})` : ''}`}
               >
                 {isVisited ? (
                   <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>✓</span>
+                ) : isMonsterNode ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', pointerEvents: 'none' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#fecaca', whiteSpace: 'nowrap' }}>
+                      ⚔️ {cell.label}
+                    </span>
+                    <div style={{ display: 'flex', gap: '3px', marginTop: '1px' }}>
+                      {cell.monsterLifeBoxes?.map((b) => (
+                        <span key={b.cellId} style={{ fontSize: '0.6rem', fontWeight: 800, background: 'rgba(0,0,0,0.4)', padding: '0 3px', borderRadius: '3px', color: '#fff' }}>
+                          {b.value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', pointerEvents: 'none' }}>
-                    <span style={{ fontSize: subIcon ? '0.8rem' : '0.95rem', fontWeight: 900, fontFamily: "'Inter', monospace, sans-serif", color: textColor, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
+                    <span style={{ fontSize: subIcon ? '0.85rem' : '0.95rem', fontWeight: 900, fontFamily: "'Inter', monospace, sans-serif", color: textColor, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
                       {cell.value ?? (cell.type === 'START' ? 'S' : '—')}
                     </span>
                     {subIcon && (
-                      <span style={{ fontSize: '0.5rem', lineHeight: 1, marginTop: '1px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}>
+                      <span style={{ fontSize: '0.55rem', lineHeight: 1, marginTop: '1px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))', fontWeight: 700, color: cell.requiresEqualDice ? '#fbbf24' : '#ffffff' }}>
                         {subIcon}
                       </span>
                     )}

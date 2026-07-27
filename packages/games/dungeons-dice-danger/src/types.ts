@@ -22,6 +22,8 @@ export interface MapCell {
   monsterId?: string;
   requiresActivationCellId?: string;
   isArmored?: boolean;
+  requiresEqualDice?: boolean;
+  monsterLifeBoxes?: MonsterLifeBox[];
 }
 
 export interface MonsterLifeBox {
