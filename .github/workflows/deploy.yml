@@ -147,14 +147,6 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Start Cloud SQL Auth Proxy
-        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
-          curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.1/cloud-sql-proxy.linux.amd64
-          chmod +x cloud-sql-proxy
-          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db &
-          sleep 3
-
       - name: Install pnpm
         if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
         uses: pnpm/action-setup@v4
@@ -174,7 +166,15 @@ jobs:
 
       - name: Apply DB Schema Migrations
         if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
-        run: pnpm --filter @boardgametime/db exec prisma db push
+        run: |
+          curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.1/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db --port 5432 > proxy.log 2>&1 &
+          PROXY_PID=$!
+          sleep 4
+          cat proxy.log
+          pnpm --filter @boardgametime/db exec prisma db push
+          kill $PROXY_PID 2>/dev/null || true
 
   # ──────────────────────────────────────────────
   # Deploy API to Cloud Run
