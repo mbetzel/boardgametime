@@ -27,7 +27,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         backgroundColor: '#1e293b',
         border: '1px solid rgba(245, 158, 11, 0.3)',
         borderRadius: '16px',
-        padding: '1rem 1.5rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1.5rem)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.85rem',
@@ -37,7 +37,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       {/* Top Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.75rem)', fontWeight: 800, color: '#f59e0b', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             🏰 Kingdoms
           </h1>
           <Badge variant="gold" size="md">
@@ -86,12 +86,12 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             🏆 Match Complete! Winner: {players.find((p) => p.userId === gameState.winnerPlayerId)?.username || 'Draw'}
           </span>
         ) : isMyTurn ? (
-          <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            👑 YOUR TURN — Choose an action below and place on the 5x6 board!
+          <span style={{ fontSize: 'clamp(0.8rem, 2.5vw, 1.05rem)', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            👑 YOUR TURN — Choose an action below!
           </span>
         ) : (
-          <span style={{ fontSize: '0.95rem', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            ⏳ Active Turn: <strong style={{ color: '#f8fafc' }}>{activePlayer?.username || 'Opponent'}</strong> (Waiting for move...)
+          <span style={{ fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            ⏳ Active Turn: <strong style={{ color: '#f8fafc' }}>{activePlayer?.username || 'Opponent'}</strong> (Waiting...)
           </span>
         )}
       </div>

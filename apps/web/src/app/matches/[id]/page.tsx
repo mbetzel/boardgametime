@@ -324,10 +324,10 @@ export default function MatchPage() {
           maxWidth: '1280px',
           width: '100%',
           margin: '0 auto',
-          padding: '1.5rem 1rem',
+          padding: 'clamp(0.75rem, 3vw, 1.5rem) clamp(0.5rem, 2vw, 1rem)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.5rem',
+          gap: '1rem',
         }}
       >
         {/* Header */}
@@ -353,9 +353,9 @@ export default function MatchPage() {
         )}
 
         {/* Main 2-Column Game Layout (Wireframe Page 5) */}
-        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-start' }}>
           {/* Left Section: 5x6 Board Grid & Player Hand Controls */}
-          <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ flex: '1 1 min(100%, 600px)', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <BoardGrid
               board={gameState.board}
               players={gameState.players}
@@ -384,7 +384,7 @@ export default function MatchPage() {
           </div>
 
           {/* Right Sidebar Section: Player Status Cards & Turn History Log */}
-          <div style={{ flex: '1 1 340px', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <PlayerStatusCards
               gameState={gameState}
               players={match.players}
