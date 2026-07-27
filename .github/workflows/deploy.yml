@@ -121,6 +121,9 @@ jobs:
     name: Run DB Migrations
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
@@ -136,6 +139,19 @@ jobs:
           filters: |
             db:
               - 'packages/db/prisma/**'
+
+      - name: Authenticate to Google Cloud
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Start Cloud SQL Auth Proxy
+        if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
+        uses: google-github-actions/setup-cloud-sql-proxy@v1
+        with:
+          instance: 'boardgametime-app:us-central1:boardgametime-db'
 
       - name: Install pnpm
         if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'

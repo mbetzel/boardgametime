@@ -11,12 +11,26 @@ jobs:
   db-sync:
     name: Check & Sync DB Schema
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Start Cloud SQL Auth Proxy
+        uses: google-github-actions/setup-cloud-sql-proxy@v1
+        with:
+          instance: 'boardgametime-app:us-central1:boardgametime-db'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
