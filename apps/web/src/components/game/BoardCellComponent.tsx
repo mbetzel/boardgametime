@@ -143,8 +143,8 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
             >
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: 'clamp(28px, 5vw, 42px)',
+                  height: 'clamp(28px, 5vw, 42px)',
                   borderRadius: '8px',
                   backgroundColor: `${playerColor}33`,
                   display: 'flex',
@@ -154,7 +154,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
                   border: `2px dashed ${playerColor}`,
                   color: '#ffffff',
                   fontWeight: 900,
-                  fontSize: '1rem',
+                  fontSize: 'clamp(0.7rem, 2vw, 1rem)',
                 }}
               >
                 🏰{selectedAction.rank}
@@ -242,8 +242,8 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
         >
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: 'clamp(28px, 5vw, 42px)',
+              height: 'clamp(28px, 5vw, 42px)',
               borderRadius: '8px',
               backgroundColor: castleOwnerColor,
               display: 'flex',
@@ -253,7 +253,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
               border: '2px solid #ffffff',
               color: '#ffffff',
               fontWeight: 900,
-              fontSize: '1rem',
+              fontSize: 'clamp(0.7rem, 2vw, 1rem)',
             }}
           >
             🏰{cell.rank}
@@ -282,8 +282,8 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
             padding: '2px',
           }}
         >
-          <span style={{ fontSize: '1.25rem' }}>{tileStyle.icon}</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: tileStyle.textColor }}>
+          <span style={{ fontSize: 'clamp(0.85rem, 2.5vw, 1.25rem)' }}>{tileStyle.icon}</span>
+          <span style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)', fontWeight: 900, color: tileStyle.textColor, textAlign: 'center', lineHeight: 1.2 }}>
             {tileStyle.valueText}
           </span>
         </div>
@@ -331,7 +331,7 @@ export const BoardCellComponent: React.FC<BoardCellComponentProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       style={{
         aspectRatio: '1',
-        minHeight: '75px',
+        minHeight: '0',
         backgroundColor: getCellBackground(),
         border: getHoverBorder(),
         borderRadius: '10px',

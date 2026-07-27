@@ -168,7 +168,7 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
                 }
               }
             }}
-            style={{ flex: 1, minWidth: '180px' }}
+            style={{ flex: '1 1 140px', minWidth: 0 }}
           >
             {isDrawnTilePending
               ? `📜 Place Drawn Tile (${pendingDrawnTile?.name || 'Tile Drawn'})`
@@ -183,15 +183,15 @@ export const PlayerHandControls: React.FC<PlayerHandControlsProps> = ({
               onClick={() =>
                 onSelectAction(selectedAction?.kind === 'SECRET_TILE' ? null : { kind: 'SECRET_TILE' })
               }
-              style={{ flex: 1, minWidth: '180px' }}
+              style={{ flex: '1 1 140px', minWidth: 0 }}
             >
               🕵️ Secret Tile ({secretTile.name})
             </Button>
           ) : (
             <div
               style={{
-                flex: 1,
-                minWidth: '180px',
+                flex: '1 1 140px',
+                minWidth: 0,
                 padding: '0.6rem',
                 borderRadius: '8px',
                 backgroundColor: '#0f172a',

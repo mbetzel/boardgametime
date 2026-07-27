@@ -88,7 +88,7 @@ export class KingdomsGameEngine
     }
 
     if (action.type === 'CANCEL_TURN') {
-      if (!state.pendingPlacement && !state.pendingTurnConfirmation) {
+      if (!state.pendingPlacement && !state.pendingTurnConfirmation && !state.pendingDrawnTile) {
         return { valid: false, reason: 'No pending turn action to cancel.' };
       }
       return { valid: true };
@@ -179,7 +179,7 @@ export class KingdomsGameEngine
         newState.pendingPlacement = null;
         newState.pendingTurnConfirmation = false;
       } else if (newState.pendingDrawnTile) {
-        // Return pending drawn tile back to draw pile if canceled before board placement
+        // Cancel a drawn-but-not-placed tile: return it to the top of the draw pile
         newState.drawPile.push(newState.pendingDrawnTile);
         newState.pendingDrawnTile = null;
         newState.pendingTurnConfirmation = false;

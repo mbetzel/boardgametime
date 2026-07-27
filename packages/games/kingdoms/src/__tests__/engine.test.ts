@@ -311,6 +311,49 @@ describe('Kingdoms Game Engine State Machine', () => {
     expect(confirmedState.activePlayerId).toBe('p2');
   });
 
+  it('allows cancelling a drawn-but-not-placed tile and returns it to the draw pile', () => {
+    const state = engine.createInitialState(playerIds);
+    const initialDrawCount = state.drawPile.length;
+
+    // 1. Draw and place tile
+    const { newState: stagedState } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 1,
+      col: 1,
+    });
+
+    const drawnTile = stagedState.pendingDrawnTile;
+    expect(drawnTile).toBeDefined();
+    expect(stagedState.drawPile.length).toBe(initialDrawCount - 1);
+
+    // 2. Cancel the placement (tile stays drawn, board cell cleared)
+    const { newState: cancelledPlacement } = engine.applyAction(stagedState, {
+      type: 'CANCEL_TURN',
+      playerId: 'p1',
+    });
+
+    expect(cancelledPlacement.board[1][1].type).toBe('EMPTY');
+    expect(cancelledPlacement.pendingDrawnTile?.id).toBe(drawnTile?.id);
+    expect(cancelledPlacement.pendingPlacement).toBeNull();
+    expect(cancelledPlacement.pendingTurnConfirmation).toBe(false);
+
+    // 3. Cancel again — this is the bug scenario: drawn tile but no placement
+    //    Previously this threw "No pending turn action to cancel."
+    const { newState: fullyCancelled } = engine.applyAction(cancelledPlacement, {
+      type: 'CANCEL_TURN',
+      playerId: 'p1',
+    });
+
+    // Tile returned to draw pile, pendingDrawnTile cleared
+    expect(fullyCancelled.pendingDrawnTile).toBeNull();
+    expect(fullyCancelled.drawPile.length).toBe(initialDrawCount);
+    expect(fullyCancelled.pendingPlacement).toBeNull();
+    expect(fullyCancelled.pendingTurnConfirmation).toBe(false);
+    // Player turn should still be active (not advanced)
+    expect(fullyCancelled.activePlayerId).toBe('p1');
+  });
+
   it('reuses pendingDrawnTile when DRAW_AND_PLACE_TILE is called again in same turn', () => {
     const state = engine.createInitialState(playerIds);
     const initialDrawCount = state.drawPile.length;

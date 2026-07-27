@@ -69,10 +69,10 @@ Always prefix commands with the NVM node bin path:
 ```bash
 # Monorepo-wide build/test
 wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c \
-  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm build"
+  "export PATH=/usr/bin:/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm build"
 
 wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c \
-  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm test"
+  "export PATH=/usr/bin:/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm test"
 ```
 
 ### Per-Package Vitest Runs
@@ -82,8 +82,27 @@ For running tests in an individual package, invoke `vitest.mjs` directly via nod
 ```bash
 # Example: kingdoms game engine tests
 wsl -d Ubuntu --cd /home/mike/github/boardgametime/packages/games/kingdoms bash -c \
-  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && \
+  "export PATH=/usr/bin:/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && \
    node node_modules/vitest/vitest.mjs run"
 ```
 
+### Worktree Test Execution
+When working in a worktree branch (files under
+`/mnt/c/Users/Mike/.gemini/antigravity/worktrees/boardgametime/<branch>/`),
+do **NOT** run tests from `/home/mike/github/boardgametime` — that path contains
+the main branch's source files and will not reflect worktree edits.
+
+Instead:
+1. Install dependencies in the worktree first:
+   ```bash
+   wsl -d Ubuntu --cd /mnt/c/Users/Mike/.gemini/antigravity/worktrees/boardgametime/<branch> bash -c \
+     "export PATH=/usr/bin:/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm install --frozen-lockfile"
+   ```
+2. Run tests from the worktree path:
+   ```bash
+   wsl -d Ubuntu --cd /mnt/c/Users/Mike/.gemini/antigravity/worktrees/boardgametime/<branch>/packages/games/kingdoms bash -c \
+     "export PATH=/usr/bin:/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && node node_modules/vitest/vitest.mjs run"
+   ```
+
 > **Note:** The NVM node version in use is `v26.5.0`. If the project upgrades node via nvm, update this path accordingly.
+> Including `/usr/bin` in PATH ensures standard Unix utilities (`grep`, `tail`, `head`, `wc`, etc.) are available in non-interactive `bash -c` shells.
