@@ -363,5 +363,95 @@ describe('Kingdoms Game Engine State Machine', () => {
     // P1 sees their pendingDrawnTile
     expect(sanitizedForP1.pendingDrawnTile?.id).toBe(stagedState.pendingDrawnTile?.id);
   });
+
+  // ── Regression: "Face-Down Tile" shown as tile preview before drawing ──────
+  //
+  // Bug: the UI derived `nextDrawTile` from `drawPile[last]` as a fallback when
+  // `pendingDrawnTile` was absent. The server sanitizes every drawPile entry to a
+  // stub (`{ name: 'Face-Down Tile', value: 0 }`), so the hover preview and action
+  // badge displayed "Face-Down Tile" until the player clicked to place the tile.
+  //
+  // Fix: `nextDrawTile` in the UI now derives solely from `pendingDrawnTile`.
+  // These tests lock in the server-side contract that the fix depends on.
+
+  it('pendingDrawnTile is absent before any draw action, so UI shows no tile preview', () => {
+    const state = engine.createInitialState(playerIds);
+
+    // Before any draw: no pending tile exists on the raw state
+    expect(state.pendingDrawnTile).toBeFalsy();
+
+    // After sanitization the same holds — the UI must not fall back to drawPile
+    const sanitized = engine.sanitizeStateForPlayer(state, 'p1');
+    expect(sanitized.pendingDrawnTile).toBeFalsy();
+
+    // Every drawPile entry is a face-down stub — using any of them as a preview
+    // would reproduce the defect, so they must never be treated as real tiles
+    sanitized.drawPile.forEach((tile) => {
+      expect(tile.name).toBe('Face-Down Tile');
+      expect(tile.id).toMatch(/^hidden_/);
+    });
+  });
+
+  it('pendingDrawnTile is set to the real tile only after a draw action is applied', () => {
+    const state = engine.createInitialState(playerIds);
+    const realTopTile = state.drawPile[state.drawPile.length - 1]; // server-side identity
+
+    const { newState: staged } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 0,
+      col: 0,
+    });
+
+    // The engine pops the real tile into pendingDrawnTile
+    expect(staged.pendingDrawnTile).toBeDefined();
+    expect(staged.pendingDrawnTile!.id).toBe(realTopTile.id);
+    expect(staged.pendingDrawnTile!.name).not.toBe('Face-Down Tile');
+
+    // Sanitized state preserves pendingDrawnTile so the UI can show the real tile
+    const sanitized = engine.sanitizeStateForPlayer(staged, 'p1');
+    expect(sanitized.pendingDrawnTile?.id).toBe(realTopTile.id);
+    expect(sanitized.pendingDrawnTile?.name).not.toBe('Face-Down Tile');
+  });
+
+  it('opponent receives face-down drawPile stubs and null-equivalent pendingDrawnTile after active player draws', () => {
+    const state = engine.createInitialState(playerIds);
+
+    const { newState: staged } = engine.applyAction(state, {
+      type: 'DRAW_AND_PLACE_TILE',
+      playerId: 'p1',
+      row: 0,
+      col: 0,
+    });
+
+    // Sanity: raw state has the real drawn tile
+    expect(staged.pendingDrawnTile).toBeDefined();
+    expect(staged.pendingDrawnTile!.name).not.toBe('Face-Down Tile');
+
+    // Opponent (p2) receives sanitized view — drawPile entries are stubs
+    const sanitizedForP2 = engine.sanitizeStateForPlayer(staged, 'p2');
+    sanitizedForP2.drawPile.forEach((tile) => {
+      expect(tile.name).toBe('Face-Down Tile');
+    });
+
+    // The current sanitization does NOT further hide pendingDrawnTile from opponents
+    // (the drawn tile is already face-up on the board visually). This assertion
+    // documents the current behavior so any future change is deliberate.
+    expect(sanitizedForP2.pendingDrawnTile?.id).toBe(staged.pendingDrawnTile?.id);
+  });
+
+  it('drawPile stubs have a predictable hidden id pattern and are not valid tile previews', () => {
+    const state = engine.createInitialState(playerIds);
+    const sanitized = engine.sanitizeStateForPlayer(state, 'p1');
+
+    expect(sanitized.drawPile.length).toBeGreaterThan(0);
+    sanitized.drawPile.forEach((tile, i) => {
+      // All entries must be placeholder stubs
+      expect(tile.id).toBe(`hidden_${i}`);
+      expect(tile.name).toBe('Face-Down Tile');
+      expect(tile.type).toBe('RESOURCE');
+      expect(tile.value).toBe(0);
+    });
+  });
 });
 

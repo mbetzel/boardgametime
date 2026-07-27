@@ -50,8 +50,30 @@ To prevent Windows PowerShell string mangling or quote truncation during file op
 
 ## 5. Build, Verification & Testing Workflow
 - **Monorepo Directory**: All workspace execution commands MUST be run from `/home/mike/github/boardgametime`.
-- **Package Management & Orchestration**: Use `pnpm` and `turbo`:
-  ```bash
-  wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c "pnpm build"
-  wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c "pnpm test"
-  ```
+- **Package Management & Orchestration**: Use `pnpm` and `turbo`.
+
+### ⚠️ NVM / pnpm PATH Issue
+`pnpm` is installed via NVM and is **not on PATH** in non-interactive `bash -c` shells.
+Always prefix commands with the NVM node bin path:
+
+```bash
+# Monorepo-wide build/test
+wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c \
+  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm build"
+
+wsl -d Ubuntu --cd /home/mike/github/boardgametime bash -c \
+  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && pnpm test"
+```
+
+### Per-Package Vitest Runs
+For running tests in an individual package, invoke `vitest.mjs` directly via node
+(more reliable than going through pnpm filter in non-interactive shells):
+
+```bash
+# Example: kingdoms game engine tests
+wsl -d Ubuntu --cd /home/mike/github/boardgametime/packages/games/kingdoms bash -c \
+  "export PATH=/home/mike/.nvm/versions/node/v26.5.0/bin:\$PATH && \
+   node node_modules/vitest/vitest.mjs run"
+```
+
+> **Note:** The NVM node version in use is `v26.5.0`. If the project upgrades node via nvm, update this path accordingly.

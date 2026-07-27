@@ -203,7 +203,10 @@ export default function MatchPage() {
   const isMyTurn = gameState.activePlayerId === currentUserId;
   const myPlayerState = currentUserId ? gameState.players[currentUserId] : undefined;
   const drawPile = gameState.drawPile || [];
-  const nextDrawTile = gameState.pendingDrawnTile || (drawPile.length > 0 ? drawPile[drawPile.length - 1] : null);
+  // Only expose the tile identity when the server has actually drawn and revealed it.
+  // drawPile entries are sanitized server-side to face-down stubs, so we must not
+  // use them as a preview — that caused the "Face-Down Tile" bug.
+  const nextDrawTile = gameState.pendingDrawnTile ?? null;
 
   const handleCellClick = async (row: number, col: number) => {
     if (!isMyTurn || !selectedAction) return;
