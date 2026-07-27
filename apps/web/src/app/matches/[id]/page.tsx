@@ -206,7 +206,27 @@ export default function MatchPage() {
   // Only expose the tile identity when the server has actually drawn and revealed it.
   // drawPile entries are sanitized server-side to face-down stubs, so we must not
   // use them as a preview — that caused the "Face-Down Tile" bug.
-  const nextDrawTile = gameState.pendingDrawnTile ?? null;
+  // Filter out sanitized face-down stubs — if pendingDrawnTile somehow contains
+  // a stub (e.g. from DB state corruption), treat it as unrevealed.
+  const rawPendingTile = gameState.pendingDrawnTile ?? null;
+  const nextDrawTile = rawPendingTile && rawPendingTile.name !== 'Face-Down Tile'
+    ? rawPendingTile
+    : null;
+
+  const handleDrawTile = async () => {
+    if (!isMyTurn || gameState.pendingDrawnTile || actionLoading) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const updated = await submitAction(matchId, { actionType: 'DRAW_TILE', actionPayload: {} });
+      updateMatchData(updated);
+      setSelectedAction({ kind: 'DRAW_TILE' });
+    } catch (err: any) {
+      setError(err.message || 'Failed to draw tile');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleCellClick = async (row: number, col: number) => {
     if (!isMyTurn || !selectedAction) return;
@@ -221,7 +241,19 @@ export default function MatchPage() {
       actionType = 'PLACE_CASTLE';
       actionPayload.rank = selectedAction.rank;
     } else if (selectedAction.kind === 'DRAW_TILE') {
-      actionType = gameState.pendingDrawnTile ? 'PLACE_DRAWN_TILE' : 'DRAW_AND_PLACE_TILE';
+      // Always use two-step flow: DRAW_TILE first (if needed), then PLACE_DRAWN_TILE.
+      // This ensures the drawn tile identity is revealed before placement.
+      if (!gameState.pendingDrawnTile) {
+        try {
+          const drawResult = await submitAction(matchId, { actionType: 'DRAW_TILE', actionPayload: {} });
+          updateMatchData(drawResult);
+        } catch (err: any) {
+          setError(err.message || 'Failed to draw tile');
+          setActionLoading(false);
+          return;
+        }
+      }
+      actionType = 'PLACE_DRAWN_TILE';
     } else if (selectedAction.kind === 'SECRET_TILE') {
       actionType = 'PLACE_SECRET_TILE';
     }
@@ -377,6 +409,7 @@ export default function MatchPage() {
                 isMyTurn={isMyTurn}
                 selectedAction={selectedAction}
                 onSelectAction={setSelectedAction}
+                onDrawTile={handleDrawTile}
                 onPass={handlePass}
                 isLoading={actionLoading}
               />

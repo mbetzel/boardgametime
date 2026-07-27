@@ -43,7 +43,7 @@ resource "google_cloud_run_v2_service" "api_service" {
       }
       env {
         name  = "EMAIL_FROM"
-        value = "BoardGameTime <onboarding@resend.dev>"
+        value = "BoardGameTime <notifications@boardgameti.me>"
       }
 
       resources {
