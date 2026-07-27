@@ -45,9 +45,9 @@ jobs:
         run: |
           curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.1/cloud-sql-proxy.linux.amd64
           chmod +x cloud-sql-proxy
-          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db --port 5432 > proxy.log 2>&1 &
+          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db --address 0.0.0.0 --port 5432 > proxy.log 2>&1 &
           PROXY_PID=$!
-          sleep 4
+          sleep 5
           cat proxy.log
           pnpm --filter @boardgametime/db exec prisma db push
           kill $PROXY_PID 2>/dev/null || true
