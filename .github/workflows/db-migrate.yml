@@ -28,9 +28,11 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Start Cloud SQL Auth Proxy
-        uses: GoogleCloudPlatform/cloud-sql-proxy-action@v1
-        with:
-          instance-connection-name: 'boardgametime-app:us-central1:boardgametime-db'
+        run: |
+          curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.1/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db &
+          sleep 3
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

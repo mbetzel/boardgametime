@@ -149,9 +149,11 @@ jobs:
 
       - name: Start Cloud SQL Auth Proxy
         if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
-        uses: GoogleCloudPlatform/cloud-sql-proxy-action@v1
-        with:
-          instance-connection-name: 'boardgametime-app:us-central1:boardgametime-db'
+        run: |
+          curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.1/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          ./cloud-sql-proxy boardgametime-app:us-central1:boardgametime-db &
+          sleep 3
 
       - name: Install pnpm
         if: steps.changes.outputs.db == 'true' || github.event_name == 'workflow_dispatch'
