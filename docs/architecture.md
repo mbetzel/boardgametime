@@ -157,4 +157,5 @@ sequenceDiagram
 3. **Edge Caching & Global Load Balancing**: Next.js client static assets (`/_next/static/*`) are served directly via Google Cloud CDN with long-term immutable caching (`max-age=31536000, immutable`), reducing Cloud Run compute latency and bandwidth load.
 4. **Stateless Authentication**: HTTP and Socket.IO connection handshakes require signed JSON Web Tokens (JWT).
 5. **Server Authoritative Architecture**: Game engine logic is executed exclusively on the server (`apps/api`); the client software only sends requested player move intent.
+6. **Mandatory Account Email Verification & Token Security**: New accounts remain unverified (`isEmailVerified: false`) and unusable until verifying email ownership via a 256-bit crypto verification link with 24h expiration. Resending verification or re-registering an unverified account invalidates all previous tokens.
 

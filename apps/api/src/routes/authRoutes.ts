@@ -1,8 +1,10 @@
+import { randomBytes } from 'crypto';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '@boardgametime/db';
-import { RegisterRequest, LoginRequest, AuthResponse, UserDTO, UpdateEmailRequest, UpdatePasswordRequest, UpdateEmailPreferencesRequest } from '@boardgametime/types';
+import { RegisterRequest, LoginRequest, AuthResponse, UserDTO, UpdateEmailRequest, UpdatePasswordRequest, UpdateEmailPreferencesRequest, ResendVerificationRequest } from '@boardgametime/types';
 import { hashPassword, comparePassword, signToken, verifyToken } from '../services/authService';
 import { sanitizeUsername, sanitizeEmail, sanitizePassword } from '../services/inputSanitizer';
+import { sendVerificationEmail } from '../services/emailService';
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', async (request: FastifyRequest<{ Body: RegisterRequest }>, reply: FastifyReply) => {
@@ -33,8 +35,54 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     });
 
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     if (existingUser) {
-      return reply.status(409).send({ message: 'User with this email or username already exists.' });
+      if (existingUser.isEmailVerified) {
+        return reply.status(409).send({ message: 'User with this email or username already exists.' });
+      }
+
+      // Handle abandoned registration for unverified user: update credentials & send new token
+      const passwordHash = await hashPassword(cleanPass.sanitized);
+      const updatedUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          username: cleanUsername.sanitized,
+          email: cleanEmail.sanitized,
+          passwordHash,
+          avatarUrl: avatarUrl || existingUser.avatarUrl,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: verificationExpires,
+        },
+      });
+
+      await sendVerificationEmail({
+        to: updatedUser.email,
+        username: updatedUser.username,
+        token: verificationToken,
+      });
+
+      const userDto: UserDTO = {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        avatarUrl: updatedUser.avatarUrl,
+        role: (updatedUser.role as any) || 'USER',
+        isEmailVerified: false,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString(),
+        authProvider: 'credentials',
+        isOAuth: false,
+      };
+
+      const response: AuthResponse = {
+        user: userDto,
+        requiresVerification: true,
+        message: 'Unverified account updated. A new verification link has been sent to your email.',
+      };
+
+      return reply.status(200).send(response);
     }
 
     const passwordHash = await hashPassword(cleanPass.sanitized);
@@ -44,7 +92,16 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: cleanEmail.sanitized,
         passwordHash,
         avatarUrl,
+        isEmailVerified: false,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpires,
       },
+    });
+
+    await sendVerificationEmail({
+      to: user.email,
+      username: user.username,
+      token: verificationToken,
     });
 
     const userDto: UserDTO = {
@@ -53,22 +110,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       email: user.email,
       avatarUrl: user.avatarUrl,
       role: (user.role as any) || 'USER',
+      isEmailVerified: false,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       authProvider: 'credentials',
       isOAuth: false,
     };
 
-    const token = signToken({
-      sub: user.id,
-      email: user.email,
-      username: user.username,
-      role: (user.role as any) || 'USER',
-    });
-
     const response: AuthResponse = {
       user: userDto,
-      token,
+      requiresVerification: true,
+      message: 'Account created successfully! Please check your email to verify your account.',
     };
 
     return reply.status(201).send(response);
@@ -107,12 +159,20 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ message: 'Invalid credentials.' });
     }
 
+    if (!user.isEmailVerified) {
+      return reply.status(403).send({
+        requiresVerification: true,
+        message: 'Your email address has not been verified yet. Please check your inbox for the verification link or click resend.',
+      });
+    }
+
     const userDto: UserDTO = {
       id: user.id,
       username: user.username,
       email: user.email,
       avatarUrl: user.avatarUrl,
       role: (user.role as any) || 'USER',
+      isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       authProvider: 'credentials',
@@ -132,6 +192,106 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
 
     return reply.send(response);
+  });
+
+  fastify.get('/verify-email', async (request: FastifyRequest<{ Querystring: { token?: string } }>, reply: FastifyReply) => {
+    const token = request.query?.token;
+
+    if (!token || typeof token !== 'string') {
+      return reply.status(400).send({ success: false, message: 'Verification token is required.' });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { emailVerificationToken: token },
+    });
+
+    if (!user) {
+      return reply.status(400).send({ success: false, message: 'Invalid or expired verification token.' });
+    }
+
+    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+      return reply.status(400).send({ success: false, message: 'Verification link has expired. Please request a new verification email.' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    const userDto: UserDTO = {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      avatarUrl: updatedUser.avatarUrl,
+      role: (updatedUser.role as any) || 'USER',
+      isEmailVerified: true,
+      createdAt: updatedUser.createdAt.toISOString(),
+      updatedAt: updatedUser.updatedAt.toISOString(),
+      authProvider: 'credentials',
+      isOAuth: false,
+    };
+
+    const sessionToken = signToken({
+      sub: updatedUser.id,
+      email: updatedUser.email,
+      username: updatedUser.username,
+      role: (updatedUser.role as any) || 'USER',
+    });
+
+    return reply.send({
+      success: true,
+      message: 'Email verified successfully! Your account is now active.',
+      token: sessionToken,
+      user: userDto,
+    });
+  });
+
+  fastify.post('/resend-verification', async (request: FastifyRequest<{ Body: ResendVerificationRequest }>, reply: FastifyReply) => {
+    const { email } = request.body || {};
+    const rawIdentifier = email || (request.body as any)?.username;
+
+    if (!rawIdentifier || typeof rawIdentifier !== 'string') {
+      return reply.status(400).send({ message: 'Email address is required.' });
+    }
+
+    const cleanIdentifier = rawIdentifier.trim().toLowerCase();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanIdentifier },
+          { username: cleanIdentifier },
+        ],
+      },
+    });
+
+    if (user && !user.isEmailVerified) {
+      const newVerificationToken = randomBytes(32).toString('hex');
+      const newVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerificationToken: newVerificationToken,
+          emailVerificationExpires: newVerificationExpires,
+        },
+      });
+
+      await sendVerificationEmail({
+        to: user.email,
+        username: user.username,
+        token: newVerificationToken,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      message: 'If an unverified account exists for this email, a new verification link has been sent.',
+    });
   });
 
   fastify.get('/me', async (request: FastifyRequest, reply: FastifyReply) => {

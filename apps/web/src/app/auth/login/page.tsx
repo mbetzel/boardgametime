@@ -5,32 +5,60 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
-import { login, setAuthToken, setStoredUser } from '../../../lib/api';
+import { login, resendVerification, setAuthToken, setStoredUser } from '../../../lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [unverifiedAccount, setUnverifiedAccount] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setInfoMessage(null);
+    setUnverifiedAccount(false);
     setLoading(true);
 
     try {
       await login({ email: identifier, password });
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please check your credentials.');
+      const errMsg = err.message || 'Authentication failed. Please check your credentials.';
+      setError(errMsg);
+      if (errMsg.toLowerCase().includes('not been verified') || errMsg.toLowerCase().includes('verify')) {
+        setUnverifiedAccount(true);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResend = async () => {
+    if (!identifier) {
+      setError('Please enter your email address or username first.');
+      return;
+    }
+    setResending(true);
+    setError(null);
+    setInfoMessage(null);
+    try {
+      const res = await resendVerification(identifier);
+      setInfoMessage(res.message || 'A new verification link has been sent to your email.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification link.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setError(null);
+    setInfoMessage(null);
     setLoading(true);
     try {
       // Mock Google Auth for local dev environment
@@ -39,6 +67,7 @@ export default function LoginPage() {
         username: 'GooglePlayer',
         email: 'google_dev@boardgametime.com',
         avatarUrl: 'https://lh3.googleusercontent.com/a/default-user',
+        isEmailVerified: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -94,13 +123,43 @@ export default function LoginPage() {
               style={{
                 padding: '0.75rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#f87171',
+                backgroundColor: unverifiedAccount ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                border: unverifiedAccount ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+                color: unverifiedAccount ? '#fbbf24' : '#f87171',
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+              }}
+            >
+              <div>{error}</div>
+              {unverifiedAccount && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <Button
+                    type="button"
+                    variant="gold"
+                    size="sm"
+                    fullWidth
+                    isLoading={resending}
+                    onClick={handleResend}
+                  >
+                    Resend Verification Email
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {infoMessage && (
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
                 fontSize: '0.875rem',
               }}
             >
-              {error}
+              {infoMessage}
             </div>
           )}
 

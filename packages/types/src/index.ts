@@ -14,6 +14,7 @@ export interface UserDTO {
   avatarUrl?: string | null;
   role?: UserRole;
   gameTurnReminders?: boolean;
+  isEmailVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
   authProvider?: 'credentials' | 'google' | 'oauth' | string;
@@ -33,6 +34,19 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface VerifyEmailResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface UpdateEmailRequest {
   email: string;
 }
@@ -49,8 +63,10 @@ export interface UpdateEmailPreferencesRequest {
 }
 
 export interface AuthResponse {
-  user: UserDTO;
-  token: string;
+  user?: UserDTO;
+  token?: string;
+  requiresVerification?: boolean;
+  message?: string;
 }
 
 export interface JwtPayload {

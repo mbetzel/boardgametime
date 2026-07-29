@@ -1,6 +1,12 @@
-feat(security): implement universal input sanitization for user-provided text
+feat(auth): implement mandatory email verification flow and account security controls
 
-- Added inputSanitizer service with helpers for username, email, password, and general text strings
-- Sanitized input fields across auth endpoints (/register, /login) and match chat
-- Updated AGENTS.md with Section 8 User Input Sanitization & Security Policy
-- Updated vitest test cases verifying XSS escaping & sanitization
+- Add isEmailVerified, emailVerificationToken, and emailVerificationExpires fields to User model
+- Add sendVerificationEmail and dark-mode HTML template generator in emailService
+- Update /api/auth/register to set isEmailVerified: false, generate 24h token, and send verification email
+- Handle abandoned registration: re-registering an unverified account updates credentials, invalidates old token, and resends email
+- Update /api/auth/login to block unverified users with 403 Forbidden and resend prompt
+- Add GET /api/auth/verify-email endpoint to activate user account and issue session token
+- Add POST /api/auth/resend-verification endpoint to refresh token and resend verification link
+- Update web UI (/auth/register, /auth/login, /auth/verify-email) with verification landing page and resend actions
+- Add unit & integration tests for email verification flow
+- Update PRD-001 platform specs and architecture documentation

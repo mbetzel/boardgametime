@@ -7,20 +7,23 @@ generator client {
 }
 
 model User {
-  id            String        @id @default(uuid())
-  username      String        @unique
-  email         String        @unique
-  passwordHash  String?
-  avatarUrl     String?
-  role          String        @default("USER")
-  gameTurnReminders   Boolean       @default(true)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  hostedLobbies       Lobby[]       @relation("LobbyHost")
-  lobbyPlayers        LobbyPlayer[]
-  matchPlayers        MatchPlayer[]
-  matchEvents         MatchEvent[]
-  chatMessages        MatchChatMessage[]
+  id                      String             @id @default(uuid())
+  username                String             @unique
+  email                   String             @unique
+  passwordHash            String?
+  avatarUrl               String?
+  role                    String             @default("USER")
+  gameTurnReminders       Boolean            @default(true)
+  isEmailVerified         Boolean            @default(false)
+  emailVerificationToken  String?            @unique
+  emailVerificationExpires DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  hostedLobbies           Lobby[]            @relation("LobbyHost")
+  lobbyPlayers            LobbyPlayer[]
+  matchPlayers            MatchPlayer[]
+  matchEvents             MatchEvent[]
+  chatMessages            MatchChatMessage[]
 }
 
 model Lobby {

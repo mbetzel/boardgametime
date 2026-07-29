@@ -7,8 +7,8 @@ import { KingdomsGameEngine } from '@boardgametime/game-kingdoms';
 
 describe('API Integration Workflows', () => {
   let app: FastifyInstance;
-  let userToken: string;
-  let userId: string;
+  let userToken: string = '';
+  let userId: string = '';
   let lobbyId: string;
   let matchId: string;
 
@@ -28,6 +28,7 @@ describe('API Integration Workflows', () => {
       email: 'alice_int@example.com',
       passwordHash: 'hashed_password_123',
       avatarUrl: null,
+      isEmailVerified: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -47,11 +48,10 @@ describe('API Integration Workflows', () => {
 
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body).toHaveProperty('token');
+    expect(body.requiresVerification).toBe(true);
     expect(body.user.username).toBe('integration_alice');
     expect(body.user.email).toBe('alice_int@example.com');
 
-    userToken = body.token;
     userId = body.user.id;
   });
 
@@ -65,6 +65,7 @@ describe('API Integration Workflows', () => {
       email: 'alice_int@example.com',
       passwordHash,
       avatarUrl: null,
+      isEmailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -84,6 +85,8 @@ describe('API Integration Workflows', () => {
     const body = JSON.parse(res.body);
     expect(body).toHaveProperty('token');
     expect(body.user.id).toBe('usr-alice-123');
+
+    userToken = body.token;
   });
 
   it('3. Lobby Creation - POST /api/lobbies', async () => {
