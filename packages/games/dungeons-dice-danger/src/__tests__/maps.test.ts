@@ -7,7 +7,16 @@ describe('DungeonsDiceDanger Maps', () => {
 
     const map1 = getMapDefinition('annoyed-animals');
     expect(map1.id).toBe('annoyed-animals');
-    expect(map1.startCellIds.length).toBeGreaterThan(0);
+    expect(map1.startCellIds.length).toBe(11);
+    expect(Object.keys(map1.cells).length).toBeGreaterThan(0);
+
+    const cellsList = Object.values(map1.cells);
+    // Verify graph integrity: all connectedCellIds must exist
+    cellsList.forEach((cell) => {
+      cell.connectedCellIds.forEach((targetId) => {
+        expect(map1.cells[targetId]).toBeDefined();
+      });
+    });
 
     const map2 = getMapDefinition('clumsy-cultists');
     expect(map2.id).toBe('clumsy-cultists');
