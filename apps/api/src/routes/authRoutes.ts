@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '@boardgametime/db';
 import { RegisterRequest, LoginRequest, AuthResponse, UserDTO, UpdateEmailRequest, UpdatePasswordRequest, UpdateEmailPreferencesRequest } from '@boardgametime/types';
 import { hashPassword, comparePassword, signToken, verifyToken } from '../services/authService';
+import { sanitizeUsername, sanitizeEmail, sanitizePassword } from '../services/inputSanitizer';
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', async (request: FastifyRequest<{ Body: RegisterRequest }>, reply: FastifyReply) => {
@@ -11,9 +12,24 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ message: 'Username, email, and password are required.' });
     }
 
+    const cleanUsername = sanitizeUsername(username);
+    if (!cleanUsername.valid) {
+      return reply.status(400).send({ message: cleanUsername.error || 'Invalid username format.' });
+    }
+
+    const cleanEmail = sanitizeEmail(email);
+    if (!cleanEmail.valid) {
+      return reply.status(400).send({ message: cleanEmail.error || 'Invalid email format.' });
+    }
+
+    const cleanPass = sanitizePassword(password);
+    if (!cleanPass.valid) {
+      return reply.status(400).send({ message: cleanPass.error || 'Invalid password format.' });
+    }
+
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, { username }],
+        OR: [{ email: cleanEmail.sanitized }, { username: cleanUsername.sanitized }],
       },
     });
 
@@ -21,11 +37,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ message: 'User with this email or username already exists.' });
     }
 
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(cleanPass.sanitized);
     const user = await prisma.user.create({
       data: {
-        username,
-        email,
+        username: cleanUsername.sanitized,
+        email: cleanEmail.sanitized,
         passwordHash,
         avatarUrl,
       },
@@ -60,17 +76,24 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post('/login', async (request: FastifyRequest<{ Body: LoginRequest }>, reply: FastifyReply) => {
     const { email, password } = request.body || {};
-    const identifier = email || (request.body as any)?.username;
+    const rawIdentifier = email || (request.body as any)?.username;
 
-    if (!identifier || !password) {
+    if (!rawIdentifier || !password) {
+      return reply.status(400).send({ message: 'Email and password are required.' });
+    }
+
+    const cleanIdentifier = typeof rawIdentifier === 'string' ? rawIdentifier.trim().toLowerCase() : '';
+    const cleanPassword = typeof password === 'string' ? password : '';
+
+    if (!cleanIdentifier || !cleanPassword) {
       return reply.status(400).send({ message: 'Email and password are required.' });
     }
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { username: identifier },
+          { email: cleanIdentifier },
+          { username: cleanIdentifier },
         ],
       },
     });
@@ -79,7 +102,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ message: 'Invalid credentials.' });
     }
 
-    const isMatch = await comparePassword(password, user.passwordHash);
+    const isMatch = await comparePassword(cleanPassword, user.passwordHash);
     if (!isMatch) {
       return reply.status(401).send({ message: 'Invalid credentials.' });
     }

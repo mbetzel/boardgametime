@@ -140,12 +140,12 @@ sequenceDiagram
 
 | Subsystem / Layer | Monorepo Path | Technologies | Core Responsibilities |
 |---|---|---|---|
-| **Web Frontend** | `apps/web` | Next.js 14 (App Router), React, Tailwind CSS | Sleek dark-mode glassmorphism UI, interactive 5x6 board grid, client-side Socket.IO hooks, REST communication. |
-| **API & Realtime Server** | `apps/api` | Fastify, Socket.IO Server, JWT | REST endpoints for auth/lobby control, Socket.IO gateway for real-time player actions, session validation. |
+| **Web Frontend** | `apps/web` | Next.js 14 (App Router), React, CSS | Sleek dark-mode glassmorphism UI, interactive 5x6 board grid, client-side Socket.IO hooks, floating Match Chat widget with unread notifications, REST communication. |
+| **API & Realtime Server** | `apps/api` | Fastify, Socket.IO Server, JWT | REST endpoints for auth/lobby control/chat history, Socket.IO gateway for real-time player actions & match chat broadcasting, session validation. |
 | **Rules Engine Core** | `packages/games/core` | Pure TypeScript | Base engine abstractions, state machine interfaces (`GameEngine`, `BasePlayerState`). |
 | **Kingdoms Engine** | `packages/games/kingdoms` | Pure TypeScript, Vitest | Server-authoritative rules, tile placement, castle positioning, epoch scoring calculator. |
-| **Database & Persistence** | `packages/db` | Prisma ORM, PostgreSQL 16 | User accounts, lobby states, match snapshots, append-only `MatchEvent` audit/replay log. |
-| **Shared Contracts & Types** | `packages/types` | TypeScript DTOs | Shared API payloads, Socket event schemas, match state shapes. |
+| **Database & Persistence** | `packages/db` | Prisma ORM, PostgreSQL 16 | User accounts, lobby states, match snapshots, match chat messages (`MatchChatMessage`), append-only `MatchEvent` audit/replay log. |
+| **Shared Contracts & Types** | `packages/types` | TypeScript DTOs | Shared API payloads (`MatchChatMessageDTO`), Socket event schemas (`send_chat_message`, `chat_message`), match state shapes. |
 | **Cloud Infrastructure** | `infra/terraform` | GCP, HashiCorp Terraform | Managed GCP deployment via Cloud Run v2, Google Cloud CDN & Global External Load Balancer, Serverless NEG, Serverless VPC Access Connector, Cloud SQL, Cloud Memorystore Redis. |
 
 ---

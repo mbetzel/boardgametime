@@ -14,6 +14,7 @@ import {
   MatchDTO,
   SubmitActionRequest,
   MatchEventDTO,
+  MatchChatMessageDTO,
   AdminStatsDTO,
   AdminUserDetailDTO,
   AdminMatchDetailDTO,
@@ -244,6 +245,17 @@ export async function submitAction(id: string, data: SubmitActionRequest): Promi
 
 export async function getMatchEvents(id: string): Promise<MatchEventDTO[]> {
   return fetchApi<MatchEventDTO[]>(`/api/matches/${id}/events`);
+}
+
+export async function getMatchChatMessages(id: string): Promise<MatchChatMessageDTO[]> {
+  return fetchApi<MatchChatMessageDTO[]>(`/api/matches/${id}/messages`);
+}
+
+export async function sendMatchChatMessage(id: string, text: string): Promise<MatchChatMessageDTO> {
+  return fetchApi<MatchChatMessageDTO>(`/api/matches/${id}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
 }
 
 // Admin API

@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '@boardgametime/db';
-import { SubmitActionRequest, MatchDTO, MatchEventDTO, PlayMode, MatchStatus } from '@boardgametime/types';
+import { SubmitActionRequest, MatchDTO, MatchEventDTO, MatchChatMessageDTO, PlayMode, MatchStatus } from '@boardgametime/types';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
 import { DungeonsDiceDangerGameEngine, DungeonsDiceDangerAction } from '@boardgametime/game-dungeons-dice-danger';
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
+import { sanitizeChatMessageInput } from '../services/chatSanitizer';
 
 const kingdomsEngine = new KingdomsGameEngine();
 const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
@@ -317,5 +318,106 @@ export async function matchRoutes(fastify: FastifyInstance) {
     }));
 
     return reply.send(eventDtos);
+  });
+
+  // Get chat messages history
+  fastify.get('/:id/messages', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    let auth;
+    try {
+      auth = getAuthUser(request);
+    } catch {
+      return reply.status(401).send({ message: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    const match = await prisma.match.findUnique({
+      where: { id },
+      include: { players: true },
+    });
+
+    if (!match) {
+      return reply.status(404).send({ message: 'Match not found.' });
+    }
+
+    const isPlayerInMatch = match.players.some((p) => p.userId === auth.sub);
+    if (!isPlayerInMatch) {
+      return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
+    }
+
+    const messages = await prisma.matchChatMessage.findMany({
+      where: { matchId: id },
+      include: { sender: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const dtos: MatchChatMessageDTO[] = messages.map((m) => ({
+      id: m.id,
+      matchId: m.matchId,
+      senderId: m.senderId,
+      senderUsername: m.sender.username,
+      senderAvatarUrl: m.sender.avatarUrl,
+      text: m.text,
+      createdAt: m.createdAt.toISOString(),
+    }));
+
+    return reply.send(dtos);
+  });
+
+  // Post a chat message via REST
+  fastify.post('/:id/messages', async (request: FastifyRequest<{ Params: { id: string }; Body: { text: string } }>, reply: FastifyReply) => {
+    let auth;
+    try {
+      auth = getAuthUser(request);
+    } catch {
+      return reply.status(401).send({ message: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    const { text } = (request.body as { text: string }) || {};
+
+    const { valid, sanitizedText, error } = sanitizeChatMessageInput(text);
+    if (!valid) {
+      return reply.status(400).send({ message: error || 'Invalid chat message text.' });
+    }
+
+    const match = await prisma.match.findUnique({
+      where: { id },
+      include: { players: true },
+    });
+
+    if (!match) {
+      return reply.status(404).send({ message: 'Match not found.' });
+    }
+
+    const isPlayerInMatch = match.players.some((p) => p.userId === auth.sub);
+    if (!isPlayerInMatch) {
+      return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
+    }
+
+    const message = await prisma.matchChatMessage.create({
+      data: {
+        matchId: id,
+        senderId: auth.sub,
+        text: sanitizedText,
+      },
+      include: { sender: true },
+    });
+
+    const dto: MatchChatMessageDTO = {
+      id: message.id,
+      matchId: message.matchId,
+      senderId: message.senderId,
+      senderUsername: message.sender.username,
+      senderAvatarUrl: message.sender.avatarUrl,
+      text: message.text,
+      createdAt: message.createdAt.toISOString(),
+    };
+
+    const io = getSocketServer();
+    if (io) {
+      io.of('/matches').to(id).emit('chat_message', dto);
+    }
+
+    return reply.status(201).send(dto);
   });
 }

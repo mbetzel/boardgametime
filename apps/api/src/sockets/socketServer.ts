@@ -3,11 +3,12 @@ import { Server, Socket } from 'socket.io';
 import { prisma } from '@boardgametime/db';
 import { KingdomsGameEngine, KingdomsAction } from '@boardgametime/game-kingdoms';
 import { DungeonsDiceDangerGameEngine, DungeonsDiceDangerAction } from '@boardgametime/game-dungeons-dice-danger';
-import { MatchDTO, MatchEventDTO } from '@boardgametime/types';
+import { MatchDTO, MatchEventDTO, MatchChatMessageDTO } from '@boardgametime/types';
 import { verifyToken } from '../services/authService';
 import { presenceManager } from '../services/presenceManager';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
 import { mapMatchToDTO } from '../routes/matchRoutes';
+import { sanitizeChatMessageInput } from '../services/chatSanitizer';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
@@ -107,6 +108,61 @@ export function initSocketServer(httpServer: HttpServer): Server {
     socket.on('disconnect', () => {
       if (userId) {
         presenceManager.unregisterSocket(userId, socket.id);
+      }
+    });
+
+    socket.on('send_chat_message', async (data: { matchId: string; text: string }) => {
+      const { matchId, text } = data || {};
+      if (!userId) {
+        socket.emit('error', { message: 'Unauthorized connection' });
+        return;
+      }
+
+      const { valid, sanitizedText, error } = sanitizeChatMessageInput(text);
+      if (!valid) {
+        socket.emit('error', { message: error || 'Invalid chat message text.' });
+        return;
+      }
+
+      try {
+        const match = await prisma.match.findUnique({
+          where: { id: matchId },
+          include: { players: true },
+        });
+
+        if (!match) {
+          socket.emit('error', { message: 'Match not found' });
+          return;
+        }
+
+        const isPlayerInMatch = match.players.some((p) => p.userId === userId);
+        if (!isPlayerInMatch) {
+          socket.emit('error', { message: 'Forbidden. Player is not in this match.' });
+          return;
+        }
+
+        const messageRecord = await prisma.matchChatMessage.create({
+          data: {
+            matchId,
+            senderId: userId,
+            text: sanitizedText,
+          },
+          include: { sender: true },
+        });
+
+        const chatMessageDto: MatchChatMessageDTO = {
+          id: messageRecord.id,
+          matchId: messageRecord.matchId,
+          senderId: messageRecord.senderId,
+          senderUsername: messageRecord.sender.username,
+          senderAvatarUrl: messageRecord.sender.avatarUrl,
+          text: messageRecord.text,
+          createdAt: messageRecord.createdAt.toISOString(),
+        };
+
+        matchesNs.to(matchId).emit('chat_message', chatMessageDto);
+      } catch (err: any) {
+        socket.emit('error', { message: err.message || 'Error sending chat message' });
       }
     });
 
