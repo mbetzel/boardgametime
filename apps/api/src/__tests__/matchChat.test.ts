@@ -170,7 +170,7 @@ describe('Match Chat REST & Authorization System', () => {
 
     vi.spyOn(prisma.match, 'findUnique').mockResolvedValueOnce(mockMatch as any);
     (vi.spyOn(prisma.matchChatMessage, 'create') as any).mockImplementationOnce(async (args: any) => {
-      expect(args.data.text).toBe('&lt;script&gt;alert("XSS")&lt;/script&gt;');
+      expect(args.data.text).toBe('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;');
       return createdMsg;
     });
 

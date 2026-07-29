@@ -118,3 +118,9 @@ Instead:
 ## 7. Match Scoping & Authorization Security Policy
 - **Strict Participant Checks**: All match-scoped interactions (REST endpoints and WebSocket events) MUST verify that the authenticated user (`userId`) is an active participant in `match.players`.
 - **403 Forbidden Response**: Any request or socket message from a non-participant must be explicitly rejected with a `403 Forbidden` error (or `Forbidden` socket error). No direct messages (DMs) between users outside the match room.
+
+---
+
+## 8. User Input Sanitization & Security Policy
+- **Universal Sanitization**: ALL user-entered text (usernames, emails, passwords, lobby codes, and match chat messages) MUST be sanitized at the API and WebSocket boundary using the standard `inputSanitizer` helpers (`sanitizeString`, `sanitizeUsername`, `sanitizeEmail`, `sanitizePassword`).
+- **XSS & Injection Protection**: Strip ASCII control characters and null bytes (`\0`), limit max payload sizes, and enforce HTML entity encoding where applicable before persisting to PostgreSQL or broadcasting over WebSockets.
