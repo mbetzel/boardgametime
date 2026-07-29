@@ -14,6 +14,26 @@ let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
 const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
 
+export function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void) {
+  const token =
+    socket.handshake.auth?.token ||
+    (socket.handshake.headers?.authorization
+      ? socket.handshake.headers.authorization.replace('Bearer ', '')
+      : null);
+
+  if (!token) {
+    return next(new Error('Authentication required'));
+  }
+
+  try {
+    const decoded = verifyToken(token);
+    (socket as any).user = decoded;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+}
+
 export function initSocketServer(httpServer: HttpServer): Server {
   const allowedOrigins = [
     'http://localhost:3000',
@@ -48,30 +68,16 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
   ioInstance = io;
 
-  // Socket Authentication Middleware
-  io.use((socket: Socket, next) => {
-    const token =
-      socket.handshake.auth?.token ||
-      (socket.handshake.headers?.authorization
-        ? socket.handshake.headers.authorization.replace('Bearer ', '')
-        : null);
-
-    if (!token) {
-      return next(new Error('Authentication required'));
-    }
-
-    try {
-      const decoded = verifyToken(token);
-      (socket as any).user = decoded;
-      next();
-    } catch {
-      next(new Error('Invalid token'));
-    }
-  });
+  // Socket Authentication Middleware for root and custom namespaces
+  io.use(socketAuthMiddleware);
 
   // Lobbies Namespace
   const lobbiesNs = io.of('/lobbies');
+  lobbiesNs.use(socketAuthMiddleware);
   lobbiesNs.on('connection', (socket: Socket) => {
+    const authUser = (socket as any).user;
+    const userId = authUser?.sub;
+
     socket.on('join_room', (lobbyId: string) => {
       socket.join(lobbyId);
     });
@@ -79,10 +85,25 @@ export function initSocketServer(httpServer: HttpServer): Server {
     socket.on('leave_room', (lobbyId: string) => {
       socket.leave(lobbyId);
     });
+
+    socket.on('send_chat', (data: { lobbyId: string; message: string }) => {
+      if (!userId) {
+        socket.emit('error', { message: 'Unauthorized connection' });
+        return;
+      }
+      const { lobbyId, message } = data;
+      lobbiesNs.to(lobbyId).emit('chat_message', {
+        userId,
+        username: authUser?.username || authUser?.email || 'Player',
+        message,
+        createdAt: new Date().toISOString(),
+      });
+    });
   });
 
   // Matches Namespace
   const matchesNs = io.of('/matches');
+  matchesNs.use(socketAuthMiddleware);
   matchesNs.on('connection', (socket: Socket) => {
     const authUser = (socket as any).user;
     const userId = authUser?.sub;
@@ -109,6 +130,20 @@ export function initSocketServer(httpServer: HttpServer): Server {
       if (userId) {
         presenceManager.unregisterSocket(userId, socket.id);
       }
+    });
+
+    socket.on('send_chat', (data: { matchId: string; message: string }) => {
+      if (!userId) {
+        socket.emit('error', { message: 'Unauthorized connection' });
+        return;
+      }
+      const { matchId, message } = data;
+      matchesNs.to(matchId).emit('chat_message', {
+        userId,
+        username: authUser?.username || authUser?.email || 'Player',
+        message,
+        createdAt: new Date().toISOString(),
+      });
     });
 
     socket.on('send_chat_message', async (data: { matchId: string; text: string }) => {

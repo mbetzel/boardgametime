@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { getAuthToken } from './api';
 
 const getRawWsBaseUrl = (): string => {
   let url = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -17,7 +18,12 @@ export function getLobbySocket(): Socket {
     lobbySocket = io(`${WS_BASE_URL}/lobbies`, {
       autoConnect: true,
       transports: ['websocket'],
+      auth: (cb) => {
+        cb({ token: getAuthToken() });
+      },
     });
+  } else {
+    lobbySocket.auth = { token: getAuthToken() };
   }
   return lobbySocket;
 }
@@ -27,7 +33,12 @@ export function getMatchSocket(): Socket {
     matchSocket = io(`${WS_BASE_URL}/matches`, {
       autoConnect: true,
       transports: ['websocket'],
+      auth: (cb) => {
+        cb({ token: getAuthToken() });
+      },
     });
+  } else {
+    matchSocket.auth = { token: getAuthToken() };
   }
   return matchSocket;
 }
