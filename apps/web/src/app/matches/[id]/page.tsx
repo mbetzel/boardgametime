@@ -18,6 +18,7 @@ import { KingdomsGameState, GameScoringSummary, Tile } from '@boardgametime/game
 import { DungeonsDiceDangerGameState } from '@boardgametime/game-dungeons-dice-danger';
 import { DungeonsDiceDangerMatchView } from '../../../components/games/dungeons-dice-danger/DungeonsDiceDangerMatchView';
 import { TurnConfirmationBar } from '../../../components/game/TurnConfirmationBar';
+import { MatchChatWidget } from '../../../components/game/MatchChatWidget';
 
 export default function MatchPage() {
   const params = useParams();
@@ -194,6 +195,11 @@ export default function MatchPage() {
           }}
           players={match.players}
           events={events}
+        />
+        <MatchChatWidget
+          matchId={matchId}
+          players={match.players}
+          currentUserId={currentUserId}
         />
       </div>
     );
@@ -437,6 +443,12 @@ export default function MatchPage() {
           players={match.players}
         />
       </main>
+
+      <MatchChatWidget
+        matchId={matchId}
+        players={match.players}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

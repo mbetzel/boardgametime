@@ -58,6 +58,14 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
     - **Player Info Cards**: Stacked cards (Players 1–4) showing player color badge, gold/score, remaining inventory, and active turn glow.
     - **Turn History Log**: Scrollable timeline recording every action performed in the match (`MatchEvent` feed).
 
+### 2.6 Per-Match Player Chat (`/matches/[id]`)
+- **Match-Scoped Session**: Persistent real-time chat between players in an active match session.
+- **Access Control & Privacy**: Strictly scoped to players registered in `match.players`. Non-participants cannot view or send messages (enforced via 403 Forbidden on REST API and WebSocket events). No direct messages (DMs) between users.
+- **Lower-Right Floating Widget**:
+  - **Collapsed View**: Floating action button with message bubble icon and a red/amber visual notification badge displaying unread message count (`unreadCount`).
+  - **Expanded View**: Glassmorphism drawer displaying real-time message stream, sender usernames, timestamps, color-coded message bubbles (user vs opponents), and an auto-scrolling container.
+  - **Persistence**: Chat history stored in PostgreSQL database (`MatchChatMessage`) indexed by `[matchId, createdAt]` to preserve chat across page refreshes and async turns.
+
 
 ---
 

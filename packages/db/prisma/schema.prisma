@@ -20,6 +20,7 @@ model User {
   lobbyPlayers        LobbyPlayer[]
   matchPlayers        MatchPlayer[]
   matchEvents         MatchEvent[]
+  chatMessages        MatchChatMessage[]
 }
 
 model Lobby {
@@ -62,6 +63,7 @@ model Match {
   updatedAt           DateTime      @updatedAt
   players             MatchPlayer[]
   events              MatchEvent[]
+  chatMessages        MatchChatMessage[]
 }
 
 model MatchPlayer {
@@ -88,4 +90,16 @@ model MatchEvent {
   player        User     @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([matchId, sequenceNum])
+}
+
+model MatchChatMessage {
+  id        String   @id @default(uuid())
+  matchId   String
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
 }

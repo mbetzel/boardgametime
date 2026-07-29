@@ -106,3 +106,15 @@ Instead:
 
 > **Note:** The NVM node version in use is `v26.5.0`. If the project upgrades node via nvm, update this path accordingly.
 > Including `/usr/bin` in PATH ensures standard Unix utilities (`grep`, `tail`, `head`, `wc`, etc.) are available in non-interactive `bash -c` shells.
+
+---
+
+## 6. Requirements & Documentation Synchronization Policy
+- **Capture All Feature Requests**: Whenever implementing a new feature or feature request, ALWAYS update the platform and game PRDs in `docs/requirements/` (e.g. `PRD-001-platform.md`) to document the updated user flows, specifications, and UI components.
+- **Architecture Integrity**: Keep `docs/architecture.md` synchronized with any new data models, WebSocket payload contracts, or security controls added during development.
+
+---
+
+## 7. Match Scoping & Authorization Security Policy
+- **Strict Participant Checks**: All match-scoped interactions (REST endpoints and WebSocket events) MUST verify that the authenticated user (`userId`) is an active participant in `match.players`.
+- **403 Forbidden Response**: Any request or socket message from a non-participant must be explicitly rejected with a `403 Forbidden` error (or `Forbidden` socket error). No direct messages (DMs) between users outside the match room.

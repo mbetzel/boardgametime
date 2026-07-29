@@ -228,12 +228,23 @@ export interface SubmitActionRequest {
   actionPayload: unknown;
 }
 
+export interface MatchChatMessageDTO {
+  id: string;
+  matchId: string;
+  senderId: string;
+  senderUsername: string;
+  senderAvatarUrl?: string | null;
+  text: string;
+  createdAt: string;
+}
+
 // Socket Event Interfaces
 export interface ServerToClientEvents {
   lobby_updated: (lobby: LobbyDTO) => void;
   match_started: (data: { matchId: string }) => void;
   match_updated: (match: MatchDTO) => void;
   action_applied: (event: MatchEventDTO) => void;
+  chat_message: (message: MatchChatMessageDTO) => void;
   error: (data: { message: string }) => void;
 }
 
@@ -243,6 +254,7 @@ export interface ClientToServerEvents {
   join_match: (matchId: string) => void;
   leave_match: (matchId: string) => void;
   game_action: (data: { matchId: string; actionType: string; actionPayload: unknown }) => void;
+  send_chat_message: (data: { matchId: string; text: string }) => void;
 }
 
 // Game Status & Registry Types
