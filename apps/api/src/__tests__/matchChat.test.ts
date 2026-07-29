@@ -157,4 +157,34 @@ describe('Match Chat REST & Authorization System', () => {
     expect(body.text).toBe('Have fun!');
     expect(body.senderUsername).toBe('player_one');
   });
+
+  it('sanitizes script tags and HTML injections to prevent XSS attacks', async () => {
+    const createdMsg = {
+      id: 'msg-3',
+      matchId: 'match-chat-test-101',
+      senderId: 'user-player-1',
+      text: '&lt;script&gt;alert(1)&lt;/script&gt;',
+      createdAt: new Date(),
+      sender: playerUser,
+    };
+
+    vi.spyOn(prisma.match, 'findUnique').mockResolvedValueOnce(mockMatch as any);
+    (vi.spyOn(prisma.matchChatMessage, 'create') as any).mockImplementationOnce(async (args: any) => {
+      expect(args.data.text).toBe('&lt;script&gt;alert("XSS")&lt;/script&gt;');
+      return createdMsg;
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/matches/match-chat-test-101/messages',
+      headers: {
+        authorization: `Bearer ${playerToken}`,
+      },
+      payload: {
+        text: '<script>alert("XSS")</script>',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+  });
 });

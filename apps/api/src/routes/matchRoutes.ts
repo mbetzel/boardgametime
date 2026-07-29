@@ -6,6 +6,7 @@ import { DungeonsDiceDangerGameEngine, DungeonsDiceDangerAction } from '@boardga
 import { verifyToken } from '../services/authService';
 import { getSocketServer } from '../sockets/socketServer';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
+import { sanitizeChatMessageInput } from '../services/chatSanitizer';
 
 const kingdomsEngine = new KingdomsGameEngine();
 const dungeonsDiceDangerEngine = new DungeonsDiceDangerGameEngine();
@@ -374,8 +375,9 @@ export async function matchRoutes(fastify: FastifyInstance) {
     const { id } = request.params;
     const { text } = (request.body as { text: string }) || {};
 
-    if (!text || typeof text !== 'string' || !text.trim()) {
-      return reply.status(400).send({ message: 'Message text is required.' });
+    const { valid, sanitizedText, error } = sanitizeChatMessageInput(text);
+    if (!valid) {
+      return reply.status(400).send({ message: error || 'Invalid chat message text.' });
     }
 
     const match = await prisma.match.findUnique({
@@ -392,13 +394,11 @@ export async function matchRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ message: 'Forbidden. You are not a player in this match.' });
     }
 
-    const trimmedText = text.trim().slice(0, 500);
-
     const message = await prisma.matchChatMessage.create({
       data: {
         matchId: id,
         senderId: auth.sub,
-        text: trimmedText,
+        text: sanitizedText,
       },
       include: { sender: true },
     });

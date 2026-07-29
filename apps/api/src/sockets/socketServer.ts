@@ -8,6 +8,7 @@ import { verifyToken } from '../services/authService';
 import { presenceManager } from '../services/presenceManager';
 import { notifyNextPlayerIfInactive } from '../services/notificationService';
 import { mapMatchToDTO } from '../routes/matchRoutes';
+import { sanitizeChatMessageInput } from '../services/chatSanitizer';
 
 let ioInstance: Server | null = null;
 const kingdomsEngine = new KingdomsGameEngine();
@@ -117,8 +118,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
         return;
       }
 
-      if (!text || typeof text !== 'string' || !text.trim()) {
-        socket.emit('error', { message: 'Message text is required.' });
+      const { valid, sanitizedText, error } = sanitizeChatMessageInput(text);
+      if (!valid) {
+        socket.emit('error', { message: error || 'Invalid chat message text.' });
         return;
       }
 
@@ -139,13 +141,11 @@ export function initSocketServer(httpServer: HttpServer): Server {
           return;
         }
 
-        const trimmedText = text.trim().slice(0, 500);
-
         const messageRecord = await prisma.matchChatMessage.create({
           data: {
             matchId,
             senderId: userId,
-            text: trimmedText,
+            text: sanitizedText,
           },
           include: { sender: true },
         });

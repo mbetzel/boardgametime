@@ -1,0 +1,5 @@
+fix(chat-sanitizer): sanitize chat message input against XSS and injection attacks
+
+- Added chatSanitizer service (strip control chars & null bytes, HTML entity encode < and >)
+- Applied input sanitization to REST POST /api/matches/:id/messages and Socket.IO send_chat_message
+- Added unit test cases verifying HTML/script tag escaping in matchChat.test.ts
