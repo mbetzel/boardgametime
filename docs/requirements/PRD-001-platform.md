@@ -27,19 +27,27 @@ The web application frontend adheres to the Pencil Wireframe specification (Page
 - Dedicated URL route: `/auth/login`.
 - Form with Username/Email and Password fields.
 - "Sign In" primary action button connected to JWT authentication, redirecting back to the Home Page (`/`).
+- **Unverified Account Enforcement**: If credentials are valid but the account's email is unverified (`isEmailVerified: false`), sign-in returns `403 Forbidden` and displays a warning alert with a direct **"Resend Verification Email"** action button.
 - "Sign In with Google" button:
-  - Local Dev Environment: Triggers a mock Google sign-in flow for easy testing without external credentials, redirecting to `/`.
+  - Local Dev Environment: Triggers a mock Google sign-in flow for easy testing without external credentials (with `isEmailVerified: true`), redirecting to `/`.
   - Production Environment: Triggers Google OAuth 2.0 redirect flow.
 - Link to Create Account (`/auth/register`).
 
 
-### 2.3 Create Account (`/auth/register`)
+### 2.3 Create Account (`/auth/register`) & Email Verification (`/auth/verify-email`)
 - Dedicated URL route: `/auth/register`.
 - Form fields: Email Address, Username, Password.
 - Client & Server Validation:
   - **Username**: Must be unique across platform.
   - **Email**: Valid email address formatting.
   - **Password Strength**: Minimum 8 characters, requiring a combination of uppercase, lowercase, numbers, and special characters.
+- **Mandatory Email Verification**:
+  - Upon submitting registration, an unverified user account is created (`isEmailVerified: false`).
+  - The account remains **unusable** until the user clicks the verification link dispatched to their registered email address.
+  - A cryptographically random 256-bit verification token (`emailVerificationToken`) with a 24-hour expiration (`emailVerificationExpires`) is generated.
+  - **Token Invalidation & Resend**: Requesting a resend or re-registering an unverified email generates a fresh token and invalidates all previously issued verification links.
+- **Email Verification Landing Page (`/auth/verify-email?token=...`)**:
+  - Validates verification token, updates user status (`isEmailVerified: true`), invalidates used token, issues session JWT token, and displays a success confirmation view.
 
 ### 2.4 Create Game Room (`/lobbies/new`)
 - Dedicated screen for room creation:

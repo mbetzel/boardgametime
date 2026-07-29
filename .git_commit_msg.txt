@@ -1,6 +1,4 @@
-feat(security): implement universal input sanitization for user-provided text
+fix(tests): mock Prisma database queries in emailVerification tests for CI runner compatibility
 
-- Added inputSanitizer service with helpers for username, email, password, and general text strings
-- Sanitized input fields across auth endpoints (/register, /login) and match chat
-- Updated AGENTS.md with Section 8 User Input Sanitization & Security Policy
-- Updated vitest test cases verifying XSS escaping & sanitization
+- Refactor emailVerification.test.ts to mock Prisma user queries with vi.spyOn
+- Prevent database connection failure (ECONNREFUSED) when running tests in headless CI environments without PostgreSQL

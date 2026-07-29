@@ -221,7 +221,208 @@ export async function sendTurnEmail(options: SendTurnEmailOptions): Promise<Emai
   return logConsoleEmail(options, subject, text);
 }
 
-function logConsoleEmail(options: SendTurnEmailOptions, subject: string, text: string): EmailServiceResult {
+export interface SendVerificationEmailOptions {
+  to: string;
+  username: string;
+  token: string;
+}
+
+export function generateVerificationEmailHtml(options: SendVerificationEmailOptions): { subject: string; html: string; text: string } {
+  const { username, token } = options;
+  const baseUrl = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const verifyUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+
+  const subject = `Verify your BoardGameTime Account ✉️`;
+
+  const text = `Hello ${username},\n\nThank you for signing up for BoardGameTime! Please verify your email address to activate your account:\n\nVerify your account: ${verifyUrl}\n\nThis verification link will expire in 24 hours.\n\nHappy gaming,\nThe BoardGameTime Team`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #1e293b; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.25); overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="padding: 32px 32px 24px; text-align: center; background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, rgba(30, 41, 59, 0) 100%); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+              <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background-color: rgba(245, 158, 11, 0.2); border-radius: 12px; font-size: 24px; margin-bottom: 12px;">
+                ✉️
+              </div>
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #f59e0b; letter-spacing: -0.02em;">
+                BoardGameTime
+              </h1>
+              <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+                Account Email Verification
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #f8fafc;">
+                Welcome to BoardGameTime, ${username}!
+              </h2>
+              <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #cbd5e1;">
+                Please verify your email address to activate your account and start playing multiplayer strategy games.
+              </p>
+
+              <!-- Action Button -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${verifyUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: #0f172a; text-decoration: none; font-size: 16px; font-weight: 700; border-radius: 10px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+                      Verify Email Address &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.5; text-align: center;">
+                This link will expire in 24 hours. If you did not create a BoardGameTime account, please ignore this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 32px; background-color: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                BoardGameTime &bull; Account Verification Security Notice
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return { subject, html, text };
+}
+
+export async function sendVerificationEmail(options: SendVerificationEmailOptions): Promise<EmailServiceResult> {
+  const provider = (process.env.EMAIL_PROVIDER || 'console').toLowerCase();
+  const fromEmail = process.env.EMAIL_FROM || 'BoardGameTime <notifications@boardgameti.me>';
+  const { subject, html, text } = generateVerificationEmailHtml(options);
+
+  if (provider === 'sendgrid') {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      console.warn('[EmailService] SENDGRID_API_KEY is missing. Falling back to console logger.');
+      return logConsoleEmail({ to: options.to, username: options.username }, subject, text);
+    }
+
+    try {
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [
+            {
+              to: [{ email: options.to, name: options.username }],
+              subject,
+            },
+          ],
+          from: parseEmailAddress(fromEmail),
+          content: [
+            { type: 'text/plain', value: text },
+            { type: 'text/html', value: html },
+          ],
+        }),
+      });
+
+      if (response.ok || response.status === 202) {
+        return {
+          success: true,
+          provider: 'sendgrid',
+          messageId: response.headers.get('x-message-id') || `sg-verify-${Date.now()}`,
+        };
+      } else {
+        const errorText = await response.text();
+        console.error('[EmailService] SendGrid API error:', response.status, errorText);
+        return {
+          success: false,
+          provider: 'sendgrid',
+          error: `SendGrid returned status ${response.status}: ${errorText}`,
+        };
+      }
+    } catch (err: any) {
+      console.error('[EmailService] SendGrid network error:', err);
+      return {
+        success: false,
+        provider: 'sendgrid',
+        error: err.message || 'SendGrid network failure',
+      };
+    }
+  }
+
+  if (provider === 'resend') {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn('[EmailService] RESEND_API_KEY is missing. Falling back to console logger.');
+      return logConsoleEmail({ to: options.to, username: options.username }, subject, text);
+    }
+
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [options.to],
+          subject,
+          html,
+          text,
+        }),
+      });
+
+      const resData = (await response.json()) as any;
+      if (response.ok) {
+        return {
+          success: true,
+          provider: 'resend',
+          messageId: resData.id,
+        };
+      } else {
+        console.error('[EmailService] Resend API error:', resData);
+        return {
+          success: false,
+          provider: 'resend',
+          error: resData.message || 'Resend error',
+        };
+      }
+    } catch (err: any) {
+      console.error('[EmailService] Resend network error:', err);
+      return {
+        success: false,
+        provider: 'resend',
+        error: err.message || 'Resend network failure',
+      };
+    }
+  }
+
+  return logConsoleEmail({ to: options.to, username: options.username }, subject, text);
+}
+
+function logConsoleEmail(options: { to: string; username: string }, subject: string, text: string): EmailServiceResult {
   console.log('====================================================');
   console.log(`[EmailService LOG] Sending email to: ${options.to} (${options.username})`);
   console.log(`[EmailService LOG] Subject: ${subject}`);

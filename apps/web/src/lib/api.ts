@@ -131,6 +131,20 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
   return res;
 }
 
+export async function verifyEmail(token: string): Promise<{ success: boolean; message: string; token?: string; user?: UserDTO }> {
+  const res = await fetchApi<{ success: boolean; message: string; token?: string; user?: UserDTO }>(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+  if (res.token) setAuthToken(res.token);
+  if (res.user) setStoredUser(res.user);
+  return res;
+}
+
+export async function resendVerification(email: string): Promise<{ success: boolean; message: string }> {
+  return fetchApi<{ success: boolean; message: string }>('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function getMe(): Promise<UserDTO> {
   const user = await fetchApi<UserDTO>('/api/auth/me');
   if (user) setStoredUser(user);
