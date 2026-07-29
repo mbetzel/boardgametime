@@ -43,6 +43,12 @@ describe('Match Chat REST & Authorization System', () => {
   };
 
   beforeAll(async () => {
+    if (!(prisma as any).matchChatMessage) {
+      (prisma as any).matchChatMessage = {
+        findMany: () => {},
+        create: () => {},
+      };
+    }
     app = buildApp();
     await app.ready();
     playerToken = signToken({ sub: playerUser.id, email: playerUser.email, username: playerUser.username });
